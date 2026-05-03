@@ -1318,31 +1318,9 @@
   // ══════════════════════════════════════════
   // FEED
   // ══════════════════════════════════════════
-  function saveFeed() {
-    const feedType = getSeg("feedTypeCtrl");
-    if (!feedType) { toast("Select a feed type", "err"); return; }
-    const side   = feedType === "Breast" ? getSeg("sideCtrl") : null;
-    const amount = document.getElementById("feedAmount").value.trim();
-    const notes  = document.getElementById("feedNotes").value.trim();
-    const ts     = inputToISO(document.getElementById("feedTime").value);
-    const isEdit = !!editingId;
-
-    const timerMins  = isEdit ? 0 : elapsedFeedMins();
-    const finalAmount = amount || (!isEdit && timerMins > 0 ? `${timerMins} min` : "");
-
-    if (feedType === "Breast" && side && side !== "Both") state.lastBreastSide = side;
-
-    commitEvent(editingId, "Feed", { feedType, side, amount: finalAmount, timerMins, notes }, ts);
-
-    document.getElementById("feedAmount").value = "";
-    document.getElementById("feedNotes").value  = "";
-    document.querySelectorAll("#feedTypeCtrl .seg-btn, #sideCtrl .seg-btn").forEach(b => b.classList.remove("on"));
-    _closeSheetUI();
-    persist();
-    toast(isEdit ? "Feed updated ✓" : "Feed logged ✓", "ok");
-  }
+  function prepareFeedSheet() {
     document.getElementById("breastRow").style.display = "none";
-    if (editingId) return;  // edit pre-fill handled in editEntry
+    if (editingId) return;
     if (state.lastBreastSide) {
       const next = state.lastBreastSide === "Left" ? "Right" : "Left";
       const btn = document.querySelector(`#sideCtrl [data-val="${next}"]`);
@@ -1362,21 +1340,22 @@
     const side   = feedType === "Breast" ? getSeg("sideCtrl") : null;
     const amount = document.getElementById("feedAmount").value.trim();
     const notes  = document.getElementById("feedNotes").value.trim();
+    const ts     = inputToISO(document.getElementById("feedTime").value);
+    const isEdit = !!editingId;
 
-    if (feedType === "Breast" && side && side !== "Both") {
-      state.lastBreastSide = side;
-    }
+    const timerMins   = isEdit ? 0 : elapsedFeedMins();
+    const finalAmount = amount || (!isEdit && timerMins > 0 ? `${timerMins} min` : "");
 
-    const timerMins = elapsedFeedMins();
-    const finalAmount = amount || (timerMins > 0 ? `${timerMins} min` : "");
+    if (feedType === "Breast" && side && side !== "Both") state.lastBreastSide = side;
 
-    state.events.unshift({ id:uid(), type:"Feed", timestamp:nowISO(), data:{ feedType, side, amount: finalAmount, timerMins, notes } });
+    commitEvent(editingId, "Feed", { feedType, side, amount: finalAmount, timerMins, notes }, ts);
+
     document.getElementById("feedAmount").value = "";
     document.getElementById("feedNotes").value  = "";
     document.querySelectorAll("#feedTypeCtrl .seg-btn, #sideCtrl .seg-btn").forEach(b => b.classList.remove("on"));
-    closeSheet();
+    _closeSheetUI();
     persist();
-    toast("Feed logged ✓", "ok");
+    toast(isEdit ? "Feed updated ✓" : "Feed logged ✓", "ok");
   }
 
   // ══════════════════════════════════════════
@@ -1557,7 +1536,7 @@
         const prevG = prev.data.unit === "kg" ? prev.data.value * 1000 : prev.data.value;
         const curG  = e.data.unit  === "kg" ? e.data.value  * 1000 : e.data.value;
         const diff  = curG - prevG;
-        if (diff !== 0) gain = `<span style="color:${diff>0?"var(--green)":"var(--red)");font-size:0.8rem;margin-left:8px">${diff>0?"+":""}${diff}g</span>`;
+        if (diff !== 0) gain = `<span style="color:${diff>0 ? "var(--green)" : "var(--red)"};font-size:0.8rem;margin-left:8px">${diff>0?"+":""}${diff}g</span>`;
       }
       return `
         <div style="display:flex;justify-content:space-between;align-items:center;
