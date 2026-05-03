@@ -1,52 +1,72 @@
 // ─────────────────────────────────────────────
 // Newborn Command Centre — Service Worker
 //
-// IMPORTANT: bump CACHE_VERSION every time you
-// deploy an update so users get the new build.
-// e.g. 'v1' → 'v2' → 'v3' …
+// Strategy:
+//   • HTML navigation  → network-first (always
+//     fetches latest on every page load, falls
+//     back to cache when offline)
+//   • All other assets → cache-first (icons,
+//     fonts etc. served instantly once cached)
+//
+// No manual version bump needed — the network-
+// first strategy for HTML means every online
+// load gets the latest build automatically.
 // ─────────────────────────────────────────────
-const CACHE_VERSION = 'v1';
-const CACHE_NAME    = `command-centre-${CACHE_VERSION}`;
+const CACHE_NAME = 'command-centre-v1';
 
-// Files that must be cached on install for the
-// app to work completely offline.
 const CORE_ASSETS = [
   './',
-  './index.html'
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-// ── Install: pre-cache core assets ───────────
+// ── Install: pre-cache all core assets ───────
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(CORE_ASSETS))
-      .then(() => self.skipWaiting())   // activate immediately
+      .then(() => self.skipWaiting())  // activate without waiting
   );
 });
 
-// ── Activate: delete old caches ──────────────
+// ── Activate: clear old caches, claim tabs ───
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
         keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => {
-            console.log('[SW] Deleting old cache:', key);
-            return caches.delete(key);
-          })
+          .filter(k => k !== CACHE_NAME)
+          .map(k => caches.delete(k))
       ))
-      .then(() => self.clients.claim())  // take control of open tabs
+      .then(() => self.clients.claim())  // take control immediately
   );
 });
 
-// ── Fetch: serve from cache, update in background ──
+// ── Fetch ─────────────────────────────────────
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Google Fonts: network-first so they stay current,
-  // fall back to cache if offline.
+  // ── HTML navigation: network-first ──────────
+  // Always try to fetch the freshest index.html.
+  // If the network fails (offline), serve cache.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          // Cache the fresh copy for offline use
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(c => c.put(request, clone));
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // ── Google Fonts: network-first ─────────────
   if (
     url.hostname === 'fonts.googleapis.com' ||
     url.hostname === 'fonts.gstatic.com'
@@ -55,7 +75,7 @@ self.addEventListener('fetch', event => {
       fetch(request)
         .then(response => {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          caches.open(CACHE_NAME).then(c => c.put(request, clone));
           return response;
         })
         .catch(() => caches.match(request))
@@ -63,23 +83,20 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Everything else: cache-first, then network.
+  // ── Everything else: cache-first ────────────
   event.respondWith(
     caches.match(request)
       .then(cached => {
         if (cached) return cached;
-
         return fetch(request)
           .then(response => {
-            // Only cache valid same-origin responses
             if (response.ok && url.origin === self.location.origin) {
               const clone = response.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+              caches.open(CACHE_NAME).then(c => c.put(request, clone));
             }
             return response;
           })
-          // Offline fallback: serve the app shell
-          .catch(() => caches.match('./'));
+          .catch(() => caches.match('./index.html'));
       })
   );
 });
