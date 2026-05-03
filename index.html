@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Command">
+  <meta name="theme-color" content="#e8a030">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Command Centre</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #08080e;
+      --bg2:         #0e0e18;
+      --card:        #121220;
+      --card2:       #1a1a2a;
+      --border:      rgba(255,255,255,0.07);
+      --border2:     rgba(255,255,255,0.13);
+      --text:        #eeeaf2;
+      --muted:       #7070a0;
+      --dim:         rgba(255,255,255,0.06);
+      --amber:       #e8a030;
+      --amber-glow:  rgba(232,160,48,0.14);
+      --amber-dim:   rgba(232,160,48,0.28);
+      --amber-text:  #f5b84a;
+      --green:       #38c878;
+      --green-glow:  rgba(56,200,120,0.13);
+      --green-dim:   rgba(56,200,120,0.22);
+      --red:         #e05858;
+      --red-glow:    rgba(224,88,88,0.16);
+      --red-dim:     rgba(224,88,88,0.2);
+      --blue:        #6090f0;
+      --blue-dim:    rgba(96,144,240,0.16);
+      --purple:      #9878f0;
+      --purple-dim:  rgba(152,120,240,0.16);
+      --r:           18px;
+      --nav-h:       70px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    /* === TYPOGRAPHY === */
+    h1, h2, h3 { font-family: 'Syne', sans-serif; line-height: 1.1; letter-spacing: -0.02em; }
+    h1 { font-size: clamp(1.7rem, 6vw, 2.4rem); font-weight: 800; letter-spacing: -0.04em; }
+    h2 { font-size: 1.12rem; font-weight: 700; margin-bottom: 12px; }
+    h3 { font-size: 0.95rem; font-weight: 700; }
+    p  { line-height: 1.5; }
+    .mono  { font-family: 'DM Mono', monospace; }
+    .muted { color: var(--muted); }
+    .tiny  { font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
+
+    /* === LAYOUT === */
+    .app {
+      width: min(700px, 100%);
+      margin: 0 auto;
+      padding: 16px 14px;
+      padding-bottom: calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));
+    }
+
+    .page          { display: none; }
+    .page.active   { display: grid; gap: 12px; }
+    .stack         { display: grid; gap: 12px; }
+    .stack-sm      { display: grid; gap: 8px; }
+
+    /* === HEADER === */
+    .app-header { margin-bottom: 14px; }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .header-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+    .pill {
+      font-size: 0.76rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--dim); color: var(--muted);
+      border: 1px solid var(--border); white-space: nowrap;
+    }
+    .pill.amber { background: var(--amber-glow); color: var(--amber-text); border-color: var(--amber-dim); }
+    .pill.green { background: var(--green-glow); color: var(--green);      border-color: var(--green-dim);  }
+
+    /* === CARDS === */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 16px;
+    }
+
+    /* === DASHBOARD METRICS === */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+    .metric-card.ok   { border-color: var(--green-dim); }
+    .metric-card.warn { border-color: var(--amber-dim); }
+    .metric-card.crit { border-color: var(--red-dim); box-shadow: 0 0 18px var(--red-glow); }
+
+    .metric-label {
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+    .metric-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.5rem; font-weight: 500;
+      line-height: 1; margin-bottom: 5px;
+    }
+    .metric-value.ok   { color: var(--green); }
+    .metric-value.warn { color: var(--amber-text); }
+    .metric-value.crit { color: var(--red); }
+    .metric-note { font-size: 0.79rem; color: var(--muted); line-height: 1.35; }
+
+    /* === SIDE BANNER === */
+    .side-banner {
+      display: none;
+      align-items: center; justify-content: space-between;
+      background: var(--amber-glow);
+      border: 1.5px solid var(--amber-dim);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      gap: 12px;
+    }
+    .side-banner.show { display: flex; }
+    .side-banner-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--amber-text); }
+    .side-banner-value { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; color: var(--amber-text); margin-top: 2px; }
+
+    /* === SLEEP ACTIVE === */
+    .sleep-banner {
+      display: none;
+      align-items: center; justify-content: space-between;
+      background: var(--purple-dim);
+      border: 1.5px solid rgba(152,120,240,0.28);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      gap: 12px;
+    }
+    .sleep-banner.show { display: flex; }
+    .sleep-timer {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.5rem; font-weight: 500; color: var(--purple);
+    }
+    .sleep-sub { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+    .sleep-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* === QUICK LOG BUTTONS === */
+    .log-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .log-btn {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 3px; padding: 15px;
+      border-radius: var(--r);
+      border: 1.5px solid transparent;
+      cursor: pointer; touch-action: manipulation;
+      min-height: 82px; text-align: left;
+      transition: transform 0.1s;
+    }
+    .log-btn:active { transform: scale(0.96); }
+    .log-btn-icon  { font-size: 1.35rem; line-height: 1; margin-bottom: 2px; }
+    .log-btn-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+    .log-btn-sub   { font-size: 0.74rem; opacity: 0.75; }
+
+    .log-btn.feed   { background: var(--blue-dim);   border-color: rgba(96,144,240,0.25); color: var(--blue);   }
+    .log-btn.nappy  { background: var(--green-glow);  border-color: var(--green-dim);      color: var(--green);  }
+    .log-btn.sleep  { background: var(--purple-dim);  border-color: rgba(152,120,240,0.25); color: var(--purple); }
+    .log-btn.sleep.on { background: rgba(152,120,240,0.3); border-color: var(--purple); }
+    .log-btn.meds   { background: var(--amber-glow);  border-color: var(--amber-dim);      color: var(--amber-text); }
+    .log-btn.weight { background: var(--green-glow);  border-color: var(--green-dim);      color: var(--green); }
+
+    /* === FEED TIMER === */
+    .feed-timer-box {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--blue-dim);
+      border: 1.5px solid rgba(96,144,240,0.25);
+      border-radius: 16px;
+      padding: 14px 18px;
+    }
+    .feed-timer-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 2.4rem; font-weight: 500;
+      color: var(--blue); letter-spacing: -0.03em; line-height: 1;
+    }
+    .feed-timer-label {
+      font-size: 0.72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--blue); opacity: 0.75; margin-bottom: 5px;
+    }
+    .feed-timer-hint { font-size: 0.78rem; color: var(--muted); margin-top: 5px; }
+
+    /* === ENTRIES === */
+    .entry-list { display: grid; gap: 8px; max-height: 400px; overflow-y: auto; }
+
+    .entry {
+      display: grid; gap: 4px;
+      padding: 11px 14px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .entry-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .entry-type {
+      font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .entry-type.feed   { color: var(--blue); }
+    .entry-type.nappy  { color: var(--green); }
+    .entry-type.sleep  { color: var(--purple); }
+    .entry-type.med    { color: var(--amber-text); }
+    .entry-type.note   { color: var(--muted); }
+    .entry-type.weight { color: var(--green); }
+    .entry-time { font-family: 'DM Mono', monospace; font-size: 0.76rem; color: var(--muted); }
+    .entry-body { font-size: 0.86rem; color: var(--muted); line-height: 1.38; }
+    .entry-actions { display: flex; gap: 6px; margin-top: 6px; }
+    .entry-act-btn {
+      font-size: 0.73rem; font-weight: 600; padding: 5px 12px;
+      border-radius: 8px; border: 1px solid var(--border2);
+      background: var(--dim); color: var(--muted);
+      cursor: pointer; min-height: 28px; touch-action: manipulation;
+    }
+    .entry-act-btn:active { opacity: 0.7; }
+    .entry-act-btn.danger { color: var(--red); border-color: var(--red-dim); background: var(--red-glow); }
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.55); cursor: pointer; }
+
+    /* === CHARTS === */
+    .chart-wrap {
+      position: relative; width: 100%; height: 160px;
+      margin-bottom: 10px;
+    }
+    .chart-canvas { display: block; width: 100%; height: 100%; }
+    .chart-stat {
+      font-size: 0.8rem; color: var(--muted);
+      line-height: 1.4; margin-top: 2px;
+    }
+    .chart-empty {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; color: var(--muted); font-size: 0.85rem;
+    }
+    .trend-up   { color: var(--green); }
+    .trend-down { color: var(--red); }
+
+    /* === BOTTOM NAV === */
+    .fixed-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 8px 12px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      background: rgba(8,8,14,0.94);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid var(--border);
+      z-index: 50;
+    }
+    .nav-inner {
+      width: min(700px, 100%); margin: 0 auto;
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+    }
+    .nav-btn {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 3px; padding: 8px 4px;
+      border-radius: 13px; border: none;
+      background: transparent; color: var(--muted);
+      cursor: pointer; touch-action: manipulation;
+      transition: color 0.2s, background 0.2s;
+      min-height: 52px;
+    }
+    .nav-btn-icon  { font-size: 1.15rem; }
+    .nav-btn-label { font-size: 0.7rem; font-weight: 600; }
+    .nav-btn.active { color: var(--amber-text); background: var(--amber-glow); }
+
+    /* === OVERLAY + SHEETS === */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.28s;
+    }
+    .overlay.show { opacity: 1; pointer-events: all; }
+
+    .sheet {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      max-height: 92vh;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-bottom: none;
+      border-radius: 26px 26px 0 0;
+      z-index: 110;
+      overflow-y: auto;
+      padding: 0 16px;
+      padding-bottom: max(28px, env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .sheet.open { transform: translateY(0); }
+
+    .sheet-drag {
+      width: 36px; height: 4px;
+      background: var(--border2);
+      border-radius: 2px;
+      margin: 12px auto 18px;
+    }
+    .sheet-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem; font-weight: 800;
+      margin-bottom: 18px; color: var(--text);
+    }
+
+    /* === FORMS === */
+    .form-stack { display: grid; gap: 14px; }
+
+    label {
+      display: grid; gap: 6px;
+      font-size: 0.78rem; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: var(--card);
+      border: 1.5px solid var(--border2);
+      border-radius: 14px; color: var(--text);
+      padding: 13px 14px; min-height: 50px;
+      outline: none;
+      -webkit-appearance: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--amber); }
+    textarea { min-height: 86px; resize: vertical; }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237070a0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 38px;
+    }
+
+    /* Segmented control */
+    .seg { display: grid; gap: 6px; }
+    .seg-2 { grid-template-columns: 1fr 1fr; }
+    .seg-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .seg-4 { grid-template-columns: 1fr 1fr; }
+
+    .seg-btn {
+      padding: 12px 8px; border-radius: 12px;
+      border: 1.5px solid var(--border2);
+      background: transparent; color: var(--muted);
+      cursor: pointer; font-weight: 600; font-size: 0.9rem;
+      touch-action: manipulation; min-height: 48px;
+      transition: all 0.15s;
+    }
+    .seg-btn.on {
+      background: var(--amber-glow);
+      border-color: var(--amber-dim);
+      color: var(--amber-text);
+    }
+
+    /* === BUTTONS === */
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; border-radius: 15px; border: none;
+      padding: 15px 18px; min-height: 54px;
+      font-weight: 700; font-size: 1rem;
+      cursor: pointer; touch-action: manipulation;
+      transition: transform 0.1s, opacity 0.1s;
+      width: 100%;
+    }
+    .btn:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-primary  { background: var(--amber);    color: #1a0d00; }
+    .btn-ghost    { background: var(--dim);      color: var(--text); border: 1px solid var(--border2); }
+    .btn-green    { background: var(--green-dim); color: var(--green); }
+    .btn-danger   { background: var(--red-dim);  color: var(--red); }
+    .btn-sm       { min-height: 42px; padding: 10px 14px; font-size: 0.85rem; border-radius: 12px; width: auto; }
+
+    .btn-row { display: grid; gap: 8px; }
+    .btn-row-2 { grid-template-columns: 1fr 1fr; }
+
+    /* === NOTICE === */
+    .notice {
+      padding: 13px 15px;
+      border-radius: 14px;
+      font-size: 0.86rem; line-height: 1.45;
+    }
+    .notice.info   { background: var(--blue-dim);   border: 1px solid rgba(96,144,240,0.22); color: #a8c0ff; }
+    .notice.warn   { background: var(--amber-glow); border: 1px solid var(--amber-dim);      color: var(--amber-text); }
+    .notice.danger { background: var(--red-glow);   border: 1px solid rgba(224,88,88,0.28);  color: #ffc5c5; }
+
+    /* === CHECK CARDS === */
+    .check-list { display: grid; gap: 8px; }
+
+    .check-card {
+      display: grid; gap: 5px; padding: 15px;
+      border-radius: 15px;
+      border: 1.5px solid var(--border);
+      background: var(--card); color: var(--text);
+      text-align: left; cursor: pointer;
+      touch-action: manipulation; min-height: 70px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .check-card.done {
+      background: var(--green-glow);
+      border-color: var(--green-dim);
+    }
+    .check-head {
+      display: flex; justify-content: space-between;
+      align-items: center; gap: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem; font-weight: 700;
+    }
+    .check-note {
+      font-size: 0.82rem; color: var(--muted);
+      line-height: 1.4; font-family: 'DM Sans', sans-serif;
+    }
+    .tick {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--dim); display: grid;
+      place-items: center; font-size: 0.78rem; flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .check-card.done .tick { background: var(--green); color: white; }
+
+    /* === HANDOVER === */
+    .handover-box {
+      background: #060610;
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 16px;
+      font-size: 0.87rem; line-height: 1.65;
+      white-space: pre-wrap; color: var(--text);
+      min-height: 100px;
+    }
+
+    /* === ACTION ROW === */
+    .action-row { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); }
+
+    .action-btn {
+      padding: 11px 8px; border-radius: 13px;
+      border: 1px solid var(--border2);
+      background: var(--dim); color: var(--text);
+      font-size: 0.83rem; font-weight: 600;
+      cursor: pointer; min-height: 46px;
+      touch-action: manipulation;
+      transition: transform 0.1s;
+    }
+    .action-btn:active { transform: scale(0.96); }
+    .action-btn.danger { background: var(--red-glow); color: var(--red); border-color: var(--red-dim); }
+
+    /* === TOAST === */
+    .toasts {
+      position: fixed;
+      bottom: calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));
+      left: 50%; transform: translateX(-50%);
+      z-index: 300; display: grid; gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      border-radius: 11px;
+      padding: 11px 18px;
+      font-size: 0.87rem; font-weight: 600;
+      color: var(--text); white-space: nowrap;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+      animation: tIn 0.28s ease, tOut 0.28s ease 2.3s forwards;
+    }
+    .toast.ok  { border-color: var(--green-dim); color: var(--green); }
+    .toast.err { border-color: var(--red-dim);   color: var(--red);   }
+
+    @keyframes tIn  { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: none; } }
+    @keyframes tOut { to   { opacity:0; transform: translateY(-8px); } }
+
+    /* === MISC === */
+    .row-sb { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .hide   { display: none !important; }
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* === ANIMATIONS === */
+    @keyframes fadeUp { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform:none; } }
+    .page.active > * { animation: fadeUp 0.22s ease both; }
+    .page.active > *:nth-child(1) { animation-delay: 0ms; }
+    .page.active > *:nth-child(2) { animation-delay: 35ms; }
+    .page.active > *:nth-child(3) { animation-delay: 70ms; }
+    .page.active > *:nth-child(4) { animation-delay: 105ms; }
+    .page.active > *:nth-child(5) { animation-delay: 140ms; }
+    .page.active > *:nth-child(6) { animation-delay: 175ms; }
+
+    @media (max-width: 420px) {
+      .action-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<main class="app">
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="app-header">
+    <div class="header-top">
+      <div>
+        <h1 id="appTitle">Command Centre</h1>
+        <div class="header-pills">
+          <span class="pill" id="datePill">Today</span>
+          <span class="pill green" id="agePill" style="display:none"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ PAGE: HOME ═══ -->
+  <div class="page active" id="page-home">
+
+    <!-- Sleep active banner -->
+    <div class="sleep-banner" id="sleepBanner">
+      <div>
+        <div class="tiny" style="margin-bottom:3px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--purple)">Sleeping</div>
+        <div class="sleep-timer" id="sleepTimer">0:00</div>
+        <div class="sleep-sub" id="sleepSub"></div>
+      </div>
+      <div class="sleep-actions">
+        <button class="btn btn-ghost btn-sm" onclick="cancelSleep()">Cancel</button>
+        <button class="btn btn-green btn-sm" onclick="endSleep()">End Sleep</button>
+      </div>
+    </div>
+
+    <!-- Next breast banner -->
+    <div class="side-banner" id="sideBanner">
+      <div>
+        <div class="side-banner-label">Next breast</div>
+        <div class="side-banner-value" id="sideNext">—</div>
+      </div>
+      <div style="text-align:right">
+        <div class="side-banner-label">Last used</div>
+        <div style="font-size:0.83rem;color:var(--muted);margin-top:2px" id="sideLast"></div>
+      </div>
+    </div>
+
+    <!-- Metric cards -->
+    <div class="metric-grid">
+      <div class="metric-card" id="mc-feed">
+        <div class="metric-label">Last Feed</div>
+        <div class="metric-value" id="mv-feed">—</div>
+        <div class="metric-note" id="mn-feed">No feed logged</div>
+      </div>
+      <div class="metric-card" id="mc-nappy">
+        <div class="metric-label">Last Nappy</div>
+        <div class="metric-value" id="mv-nappy">—</div>
+        <div class="metric-note" id="mn-nappy">No nappy logged</div>
+      </div>
+      <div class="metric-card" id="mc-sleep">
+        <div class="metric-label">Last Sleep</div>
+        <div class="metric-value" id="mv-sleep">—</div>
+        <div class="metric-note" id="mn-sleep">No sleep logged</div>
+      </div>
+      <div class="metric-card" id="mc-today">
+        <div class="metric-label">Today</div>
+        <div class="metric-value" id="mv-today" style="font-size:1.05rem">—</div>
+        <div class="metric-note" id="mn-today"></div>
+      </div>
+    </div>
+
+    <!-- Quick log -->
+    <div class="card">
+      <h2>Quick Log</h2>
+      <div class="log-grid">
+        <button class="log-btn feed"  onclick="openSheet('feed')">
+          <span class="log-btn-icon">🍼</span>
+          <span class="log-btn-title">Feed</span>
+          <span class="log-btn-sub" id="feedSub">Tap to log</span>
+        </button>
+        <button class="log-btn nappy" onclick="openSheet('nappy')">
+          <span class="log-btn-icon">💧</span>
+          <span class="log-btn-title">Nappy</span>
+          <span class="log-btn-sub" id="nappySub">Tap to log</span>
+        </button>
+        <button class="log-btn sleep" id="sleepBtn" onclick="handleSleepTap()">
+          <span class="log-btn-icon">😴</span>
+          <span class="log-btn-title" id="sleepBtnTitle">Sleep</span>
+          <span class="log-btn-sub" id="sleepBtnSub">Tap to start</span>
+        </button>
+        <button class="log-btn meds"  onclick="openSheet('meds')">
+          <span class="log-btn-icon">💊</span>
+          <span class="log-btn-title">Meds</span>
+          <span class="log-btn-sub">Log medicine</span>
+        </button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="btn-row btn-row-2">
+        <button class="btn btn-ghost" style="min-height:48px;font-size:0.9rem" onclick="openSheet('note')">📝 Add Note</button>
+        <button class="btn btn-ghost" style="min-height:48px;font-size:0.9rem" onclick="openSheet('weight')">⚖️ Weight</button>
+      </div>
+    </div>
+
+    <!-- Recent -->
+    <div class="card">
+      <div class="row-sb" style="margin-bottom:12px">
+        <h2 style="margin:0">Recent</h2>
+        <button class="btn btn-ghost btn-sm" onclick="undoLast()">↩ Undo last</button>
+      </div>
+      <div class="entry-list" id="recentList"><div class="tiny">No entries yet.</div></div>
+    </div>
+
+    <!-- Data -->
+    <div class="card">
+      <h2>Data</h2>
+      <div class="action-row" style="grid-template-columns:1fr 1fr">
+        <button class="action-btn" onclick="exportCSV()">Export CSV</button>
+        <button class="action-btn" onclick="exportJSON()">Backup JSON</button>
+        <button class="action-btn" onclick="importJSON()">⬆ Restore</button>
+        <button class="action-btn danger" onclick="clearData()">Clear all</button>
+      </div>
+      <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(event)">
+    </div>
+
+    <!-- Weight log -->
+    <div class="card">
+      <div class="row-sb" style="margin-bottom:14px">
+        <h2 style="margin:0">⚖️ Weight log</h2>
+        <button class="btn btn-ghost btn-sm" onclick="openSheet('weight')">+ Log weight</button>
+      </div>
+      <div id="weightList" class="stack-sm"><div class="tiny">No weights logged yet.</div></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ PAGE: NIGHT ═══ -->
+  <div class="page" id="page-night">
+
+    <div class="card">
+      <h2>🌙 3am Checklist</h2>
+      <p class="tiny">Work through these calmly. This is a memory aid, not medical advice.</p>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card" id="nt-mc-feed">
+        <div class="metric-label">Last Feed</div>
+        <div class="metric-value" id="nt-mv-feed">—</div>
+        <div class="metric-note" id="nt-mn-feed">—</div>
+      </div>
+      <div class="metric-card" id="nt-mc-nappy">
+        <div class="metric-label">Last Nappy</div>
+        <div class="metric-value" id="nt-mv-nappy">—</div>
+        <div class="metric-note" id="nt-mn-nappy">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="check-list" id="troubleList"></div>
+      <div style="height:10px"></div>
+      <button class="btn btn-ghost" onclick="resetTrouble()">Reset checklist</button>
+    </div>
+
+    <div class="card">
+      <h2>Suggestion</h2>
+      <div style="font-size:0.92rem;line-height:1.6" id="ntSuggestion">Tap each card as you check it.</div>
+    </div>
+
+    <div class="notice danger">
+      <strong>When to seek help:</strong> If you're worried your baby is unwell, stop this checklist and call your midwife, GP, NHS 111, or 999. Always trust your instincts.
+    </div>
+
+  </div>
+
+  <!-- ═══ PAGE: HANDOVER ═══ -->
+  <div class="page" id="page-handover">
+
+    <div class="card">
+      <h2>🤝 Shift Handover</h2>
+      <p class="tiny">Feed, nappy and sleep data is pulled in automatically. Add your notes below.</p>
+    </div>
+
+    <div class="card">
+      <div class="form-stack">
+        <label>Baby's mood
+          <select id="hvMood">
+            <option value="">Select one</option>
+            <option>Settled</option>
+            <option>Sleepy</option>
+            <option>Hungry</option>
+            <option>Windy / gassy</option>
+            <option>Fussy</option>
+            <option>Wide awake</option>
+            <option>Needs comfort</option>
+            <option>Crying</option>
+          </select>
+        </label>
+        <label>Things tried
+          <textarea id="hvTried" placeholder="e.g. changed nappy, winded, fed, dimmed lights..."></textarea>
+        </label>
+        <label>Next likely need
+          <textarea id="hvNext" placeholder="e.g. feed around 04:30, nappy check, settling..."></textarea>
+        </label>
+        <label>Note for partner
+          <textarea id="hvNote" placeholder="Anything helpful, reassuring, or practical..."></textarea>
+        </label>
+        <button class="btn btn-primary" onclick="saveHandover()">Save notes</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row-sb" style="margin-bottom:12px">
+        <h2 style="margin:0">Summary</h2>
+        <button class="btn btn-ghost btn-sm" onclick="buildHandover()">Refresh</button>
+      </div>
+      <div class="handover-box" id="hvPreview">Save your notes above to generate the handover.</div>
+      <div style="height:12px"></div>
+      <div class="btn-row btn-row-2">
+        <button class="btn btn-ghost" onclick="copyHandover()">📋 Copy</button>
+        <button class="btn btn-green" onclick="shareHandover()">📤 Share</button>
+      </div>
+    </div>
+
+    <div class="notice warn">
+      Keep it factual and kind. "What happened last?" is often more useful than a perfect explanation at 3am.
+    </div>
+
+  </div>
+
+  <!-- ═══ PAGE: MORE ═══ -->
+  <div class="page" id="page-more">
+
+    <!-- Settings -->
+    <div class="card">
+      <h2>⚙️ Settings</h2>
+      <div class="form-stack">
+        <label>Baby name
+          <input id="babyName" placeholder="Optional">
+        </label>
+        <label>Date of birth
+          <input id="babyDOB" type="date">
+        </label>
+        <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
+      </div>
+    </div>
+
+    <!-- Quick meds -->
+    <div class="card">
+      <h2>💊 Quick medications</h2>
+      <p class="tiny" style="margin-bottom:12px">Add medications here for one-tap logging from the home screen.</p>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:12px">
+        <label>Add medication
+          <input id="newMedInput" placeholder="e.g. Vitamin D, Calpol">
+        </label>
+        <button class="btn btn-ghost btn-sm" style="margin-top:auto" onclick="addQuickMed()">Add</button>
+      </div>
+      <div class="stack-sm" id="quickMedList"><div class="tiny">No quick meds yet.</div></div>
+    </div>
+
+    <!-- Baby bag -->
+    <div class="card">
+      <h2>🎒 Baby bag checklist</h2>
+      <div class="check-list" id="bagList"></div>
+      <div style="height:10px"></div>
+      <button class="btn btn-ghost" onclick="resetBag()">Reset bag checklist</button>
+    </div>
+
+    <!-- Appointment questions -->
+    <div class="card">
+      <h2>🩺 Appointment questions</h2>
+      <div class="form-stack" style="margin-bottom:14px">
+        <label>Add question
+          <textarea id="qInput" placeholder="e.g. Is this feeding pattern normal?"></textarea>
+        </label>
+        <button class="btn btn-primary" onclick="addQuestion()">Add question</button>
+      </div>
+      <div class="stack-sm" id="qList"><div class="tiny">No questions yet.</div></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ PAGE: CHARTS ═══ -->
+  <div class="page" id="page-charts">
+
+    <div class="card">
+      <h2>📊 Patterns</h2>
+      <p class="tiny">Charts update as you log. Switch tabs and come back to refresh.</p>
+    </div>
+
+    <!-- Feeds per day -->
+    <div class="card">
+      <h2>Feeds per day</h2>
+      <div class="chart-wrap"><canvas id="chartFeeds" class="chart-canvas"></canvas></div>
+      <div class="chart-stat" id="chartFeedsStat"></div>
+    </div>
+
+    <!-- Sleep per day -->
+    <div class="card">
+      <h2>Sleep per day (hours)</h2>
+      <div class="chart-wrap"><canvas id="chartSleep" class="chart-canvas"></canvas></div>
+      <div class="chart-stat" id="chartSleepStat"></div>
+    </div>
+
+    <!-- Feed gaps -->
+    <div class="card">
+      <h2>Feed gaps (hours)</h2>
+      <div class="chart-wrap"><canvas id="chartGaps" class="chart-canvas"></canvas></div>
+      <div class="chart-stat" id="chartGapsStat"></div>
+      <div class="tiny" style="margin-top:4px">Time between consecutive feeds, oldest → newest. Trending up means longer gaps.</div>
+    </div>
+
+    <!-- Sleep stretches -->
+    <div class="card">
+      <h2>Sleep stretches (hours)</h2>
+      <div class="chart-wrap"><canvas id="chartStretches" class="chart-canvas"></canvas></div>
+      <div class="chart-stat" id="chartStretchStat"></div>
+      <div class="tiny" style="margin-top:4px">Individual sleep sessions, oldest → newest. Trending up is the goal.</div>
+    </div>
+
+    <!-- Weight (hidden until 2+ entries) -->
+    <div class="card" id="weightChartCard" style="display:none">
+      <h2>Weight (g)</h2>
+      <div class="chart-wrap"><canvas id="chartWeight" class="chart-canvas"></canvas></div>
+      <div class="chart-stat" id="chartWeightStat"></div>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<nav class="fixed-nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" id="nav-home" onclick="showPage('home')">
+      <span class="nav-btn-icon">🏠</span>
+      <span class="nav-btn-label">Home</span>
+    </button>
+    <button class="nav-btn" id="nav-night" onclick="showPage('night')">
+      <span class="nav-btn-icon">🌙</span>
+      <span class="nav-btn-label">Night</span>
+    </button>
+    <button class="nav-btn" id="nav-handover" onclick="showPage('handover')">
+      <span class="nav-btn-icon">🤝</span>
+      <span class="nav-btn-label">Handover</span>
+    </button>
+    <button class="nav-btn" id="nav-more" onclick="showPage('more')">
+      <span class="nav-btn-icon">⚙️</span>
+      <span class="nav-btn-label">More</span>
+    </button>
+    <button class="nav-btn" id="nav-charts" onclick="showPage('charts')">
+      <span class="nav-btn-icon">📊</span>
+      <span class="nav-btn-label">Charts</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ OVERLAY ═══ -->
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+<!-- ═══ BOTTOM SHEETS ═══ -->
+
+<!-- Feed -->
+<div class="sheet" id="sheet-feed">
+  <div class="sheet-drag"></div>
+  <div class="sheet-title">🍼 Log Feed</div>
+  <div class="form-stack">
+    <!-- Live feed timer -->
+    <div class="feed-timer-box">
+      <div>
+        <div class="feed-timer-label">Feed in progress</div>
+        <div class="feed-timer-val" id="feedTimerVal">0:00</div>
+        <div class="feed-timer-hint">Duration auto-saves if you leave amount blank</div>
+      </div>
+    </div>
+    <label>Feed type
+      <div class="seg seg-4" id="feedTypeCtrl">
+        <button class="seg-btn" data-val="Breast"   onclick="setSeg(this,'feedTypeCtrl')">Breast</button>
+        <button class="seg-btn" data-val="Bottle"   onclick="setSeg(this,'feedTypeCtrl')">Bottle</button>
+        <button class="seg-btn" data-val="Formula"  onclick="setSeg(this,'feedTypeCtrl')">Formula</button>
+        <button class="seg-btn" data-val="Expressed" onclick="setSeg(this,'feedTypeCtrl')">Expressed</button>
+      </div>
+    </label>
+    <div id="breastRow">
+      <label>Side
+        <div class="seg seg-3" id="sideCtrl">
+          <button class="seg-btn" data-val="Left"  onclick="setSeg(this,'sideCtrl')">← Left</button>
+          <button class="seg-btn" data-val="Both"  onclick="setSeg(this,'sideCtrl')">Both</button>
+          <button class="seg-btn" data-val="Right" onclick="setSeg(this,'sideCtrl')">Right →</button>
+        </div>
+      </label>
+    </div>
+    <label>Amount / duration
+      <input id="feedAmount" placeholder="e.g. 90ml · 20 mins">
+    </label>
+    <label>Notes
+      <textarea id="feedNotes" placeholder="Windy, settled well, poor latch..." style="min-height:72px"></textarea>
+    </label>
+    <label>When
+      <input type="datetime-local" id="feedTime">
+    </label>
+    <div class="btn-row">
+      <button class="btn btn-ghost"   onclick="closeSheet()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nappy -->
+<div class="sheet" id="sheet-nappy">
+  <div class="sheet-drag"></div>
+  <div class="sheet-title">💧 Log Nappy</div>
+  <div class="form-stack">
+    <label>Type
+      <div class="seg seg-3" id="nappyCtrl">
+        <button class="seg-btn" data-val="Wet"   onclick="setSeg(this,'nappyCtrl')">Wet</button>
+        <button class="seg-btn" data-val="Dirty" onclick="setSeg(this,'nappyCtrl')">Dirty</button>
+        <button class="seg-btn" data-val="Both"  onclick="setSeg(this,'nappyCtrl')">Both</button>
+      </div>
+    </label>
+    <label>Colour / details
+      <input id="nappyDetails" placeholder="e.g. yellow, mustard, green (optional)">
+    </label>
+    <label>Notes
+      <textarea id="nappyNotes" placeholder="Optional" style="min-height:72px"></textarea>
+    </label>
+    <label>When
+      <input type="datetime-local" id="nappyTime">
+    </label>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveNappy()">Save nappy</button>
+      <button class="btn btn-ghost"   onclick="closeSheet()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Meds -->
+<div class="sheet" id="sheet-meds">
+  <div class="sheet-drag"></div>
+  <div class="sheet-title">💊 Log Medication</div>
+  <div class="form-stack">
+    <div id="quickMedBtns"></div>
+    <label>Medication name
+      <input id="medName" placeholder="e.g. Vitamin D, Calpol">
+    </label>
+    <label>Dose / amount
+      <input id="medDose" placeholder="e.g. 5 drops, 2.5ml">
+    </label>
+    <label>Notes
+      <textarea id="medNotes" placeholder="Optional" style="min-height:64px"></textarea>
+    </label>
+    <label>When
+      <input type="datetime-local" id="medTime">
+    </label>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveMed()">Save medication</button>
+      <button class="btn btn-ghost"   onclick="closeSheet()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note -->
+<div class="sheet" id="sheet-note">
+  <div class="sheet-drag"></div>
+  <div class="sheet-title">📝 Add Note</div>
+  <div class="form-stack">
+    <label>Note
+      <textarea id="noteText" placeholder="Medicine, visitor, mood, appointment — anything useful..." style="min-height:130px"></textarea>
+    </label>
+    <label>When
+      <input type="datetime-local" id="noteTime">
+    </label>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveNote()">Save note</button>
+      <button class="btn btn-ghost"   onclick="closeSheet()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Weight -->
+<div class="sheet" id="sheet-weight">
+  <div class="sheet-drag"></div>
+  <div class="sheet-title">⚖️ Log Weight</div>
+  <div class="form-stack">
+    <label>Unit
+      <div class="seg seg-2" id="weightUnitCtrl">
+        <button class="seg-btn on" data-val="g"  onclick="setSeg(this,'weightUnitCtrl')">Grams (g)</button>
+        <button class="seg-btn"    data-val="kg" onclick="setSeg(this,'weightUnitCtrl')">Kilos (kg)</button>
+      </div>
+    </label>
+    <label>Weight
+      <input id="weightVal" type="number" placeholder="e.g. 3450" inputmode="decimal" step="any" min="0">
+    </label>
+    <label>Notes
+      <textarea id="weightNotes" placeholder="e.g. Midwife visit, 2-week check..." style="min-height:72px"></textarea>
+    </label>
+    <label>When
+      <input type="datetime-local" id="weightTime">
+    </label>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveWeight()">Save weight</button>
+      <button class="btn btn-ghost"   onclick="closeSheet()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOASTS ═══ -->
+<div class="toasts" id="toastBox"></div>
+
+<script>
+  // ══════════════════════════════════════════
+  // STATE
+  // ══════════════════════════════════════════
+  const KEY = "commandCentreV1";
+
+  const DEFAULTS = {
+    babyName: "",
+    babyDOB: "",
+    events: [],
+    currentSleep: null,
+    lastBreastSide: null,
+    troubleChecks: {},
+    bagChecks: {},
+    handover: { mood:"", tried:"", next:"", note:"" },
+    questions: [],
+    quickMeds: ["Vitamin D", "Calpol"]
+  };
+
+  const TROUBLE_ITEMS = [
+    { key:"hungry",  title:"Hungry?",          note:"Check last feed time. Look for rooting, hand-sucking, or fussing." },
+    { key:"nappy",   title:"Nappy?",            note:"A wet or dirty nappy can stop them settling. Check now." },
+    { key:"wind",    title:"Wind / gas?",        note:"Try winding upright, bicycle legs, or a gentle position change." },
+    { key:"temp",    title:"Too hot or cold?",   note:"Feel their chest or back — not hands or feet. Adjust layers." },
+    { key:"tired",   title:"Overtired?",         note:"Yawning, staring, clenched fists. Reduce stimulation and try settling." },
+    { key:"overstim",title:"Overstimulated?",    note:"Dim lights, reduce noise, less handling. A calmer environment often helps." },
+    { key:"comfort", title:"Needs comfort?",     note:"Sometimes they just need closeness, rocking, or a familiar voice." },
+    { key:"dummy",   title:"Try a dummy?",       note:"If you use one, a pacifier or clean little finger can soothe." }
+  ];
+
+  const BAG_ITEMS = [
+    { key:"nappies",  title:"Nappies",               note:"Enough for the outing plus a couple extra." },
+    { key:"wipes",    title:"Wipes / cotton wool",    note:"Whatever you use at home." },
+    { key:"clothes",  title:"Spare clothes",          note:"For baby, and ideally a spare top for you too." },
+    { key:"muslin",   title:"Muslin / bib",           note:"Usually needed sooner than expected." },
+    { key:"feed",     title:"Feed supplies",          note:"Bottles, formula, expressed milk, cover — whatever applies." },
+    { key:"comfort",  title:"Comfort item",           note:"Dummy, blanket, toy, or anything regularly used." },
+    { key:"bags",     title:"Nappy bags",             note:"For dirty nappies when out." }
+  ];
+
+  let state = loadState();
+  let sleepTick = null;
+  let currentSheet = null;
+  let feedTimerInterval = null;
+  let feedTimerStart = null;
+  let editingId = null;
+
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY));
+      return s ? merge(JSON.parse(JSON.stringify(DEFAULTS)), s) : JSON.parse(JSON.stringify(DEFAULTS));
+    } catch { return JSON.parse(JSON.stringify(DEFAULTS)); }
+  }
+
+  function merge(base, src) {
+    for (const k in src) {
+      if (src[k] !== null && typeof src[k] === "object" && !Array.isArray(src[k]) && base[k] && typeof base[k] === "object") {
+        base[k] = merge(base[k], src[k]);
+      } else { base[k] = src[k]; }
+    }
+    return base;
+  }
+
+  function persist() {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    render();
+  }
+
+  // ══════════════════════════════════════════
+  // UTILITIES
+  // ══════════════════════════════════════════
+  const uid    = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
+  const nowISO = () => new Date().toISOString();
+
+  function nowForInput() {
+    const d = new Date(); d.setSeconds(0, 0);
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function toInputDT(iso) {
+    if (!iso) return nowForInput();
+    const d = new Date(iso); d.setSeconds(0, 0);
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function inputToISO(val) {
+    return val ? new Date(val).toISOString() : nowISO();
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+  }
+
+  function fmtDT(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString([], { weekday:"short", day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+  }
+
+  function ago(iso) {
+    if (!iso) return "";
+    const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+    if (m < 1)  return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60), rm = m % 60;
+    if (h < 24) return `${h}h ${rm}m ago`;
+    return `${Math.floor(h/24)}d ago`;
+  }
+
+  function hoursAgo(iso) {
+    return iso ? (Date.now() - new Date(iso)) / 3600000 : Infinity;
+  }
+
+  function urgency(iso, warnH=2, critH=3) {
+    const h = hoursAgo(iso);
+    if (h < warnH) return "ok";
+    if (h < critH) return "warn";
+    return "crit";
+  }
+
+  function fmtDur(mins) {
+    if (mins == null || isNaN(mins)) return "—";
+    const h = Math.floor(mins/60), m = mins % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  function esc(s) {
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function findLast(type) { return state.events.find(e => e.type === type); }
+
+  function todayEvts() {
+    const td = new Date().toDateString();
+    return state.events.filter(e => new Date(e.timestamp).toDateString() === td);
+  }
+
+  function describeEvent(e) {
+    if (!e) return "";
+    if (e.type === "Feed") {
+      return [e.data.feedType, e.data.side, e.data.amount, e.data.notes].filter(Boolean).join(" · ");
+    }
+    if (e.type === "Nappy")  return [e.data.nappyType, e.data.details, e.data.notes].filter(Boolean).join(" · ");
+    if (e.type === "Sleep")  return `${fmtTime(e.data.start)}–${fmtTime(e.data.end)} · ${fmtDur(e.data.minutes)}`;
+    if (e.type === "Med")    return [e.data.name, e.data.dose, e.data.notes].filter(Boolean).join(" · ");
+    if (e.type === "Note")   return e.data.text;
+    if (e.type === "Weight") return `${e.data.value}${e.data.unit}${e.data.notes ? " · " + e.data.notes : ""}`;
+    return "";
+  }
+
+  function babyAge() {
+    if (!state.babyDOB) return null;
+    const days = Math.floor((Date.now() - new Date(state.babyDOB)) / 86400000);
+    if (days < 0) return null;
+    if (days < 7)  return `${days}d old`;
+    if (days < 30) return `${Math.floor(days/7)}w ${days%7}d old`;
+    const mo = Math.floor(days / 30.44);
+    if (mo < 12) return `${mo}m old`;
+    return `${Math.floor(mo/12)}y ${mo%12}m old`;
+  }
+
+  // ══════════════════════════════════════════
+  // TOAST
+  // ══════════════════════════════════════════
+  function toast(msg, type="") {
+    const box = document.getElementById("toastBox");
+    const el = document.createElement("div");
+    el.className = "toast" + (type ? " " + type : "");
+    el.textContent = msg;
+    box.appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+  }
+
+  // ══════════════════════════════════════════
+  // NAVIGATION
+  // ══════════════════════════════════════════
+  const PAGES = ["home","night","handover","more","charts"];
+
+  function showPage(p) {
+    PAGES.forEach(n => {
+      document.getElementById(`page-${n}`).classList.toggle("active", n === p);
+      document.getElementById(`nav-${n}`).classList.toggle("active", n === p);
+    });
+    window.scrollTo({ top:0, behavior:"smooth" });
+    render();
+    // Charts need a layout pass before canvas sizes are known
+    if (p === "charts") setTimeout(renderCharts, 80);
+  }
+
+  // ══════════════════════════════════════════
+  // SHEETS
+  // ══════════════════════════════════════════
+  function _closeSheetUI() {
+    stopFeedTimer();
+    if (currentSheet) {
+      document.getElementById(`sheet-${currentSheet}`).classList.remove("open");
+      currentSheet = null;
+    }
+    document.getElementById("overlay").classList.remove("show");
+    document.body.style.overflow = "";
+  }
+
+  function closeSheet() {
+    editingId = null;   // user cancelled — clear any pending edit
+    _closeSheetUI();
+  }
+
+  function openSheet(id) {
+    _closeSheetUI();    // close current sheet WITHOUT resetting editingId
+    currentSheet = id;
+    document.getElementById("overlay").classList.add("show");
+    document.getElementById(`sheet-${id}`).classList.add("open");
+    document.body.style.overflow = "hidden";
+
+    // Default time fields to now for new entries (edits will override in editEntry)
+    if (!editingId) {
+      const nowDT = nowForInput();
+      const tf = { feed:"feedTime", nappy:"nappyTime", meds:"medTime", note:"noteTime", weight:"weightTime" }[id];
+      if (tf) { const el = document.getElementById(tf); if (el) el.value = nowDT; }
+    }
+
+    if (id === "feed")   { prepareFeedSheet(); if (!editingId) startFeedTimer(); }
+    if (id === "meds")   renderMedSheet();
+    if (id === "weight" && !editingId) {
+      document.querySelectorAll("#weightUnitCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+      document.querySelector("#weightUnitCtrl [data-val='g']").classList.add("on");
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // FEED TIMER
+  // ══════════════════════════════════════════
+  function startFeedTimer() {
+    feedTimerStart = Date.now();
+    stopFeedTimer();
+    updateFeedTimer();
+    feedTimerInterval = setInterval(updateFeedTimer, 1000);
+  }
+
+  function stopFeedTimer() {
+    if (feedTimerInterval) { clearInterval(feedTimerInterval); feedTimerInterval = null; }
+  }
+
+  function updateFeedTimer() {
+    const el = document.getElementById("feedTimerVal");
+    if (!el || !feedTimerStart) return;
+    const s = Math.floor((Date.now() - feedTimerStart) / 1000);
+    const m = Math.floor(s / 60);
+    const sc = s % 60;
+    el.textContent = `${m}:${String(sc).padStart(2, "0")}`;
+  }
+
+  function elapsedFeedMins() {
+    if (!feedTimerStart) return 0;
+    return Math.max(1, Math.round((Date.now() - feedTimerStart) / 60000));
+  }
+
+  // ══════════════════════════════════════════
+  // SEGMENTED CONTROLS
+  // ══════════════════════════════════════════
+  function setSeg(btn, ctrlId) {
+    document.querySelectorAll(`#${ctrlId} .seg-btn`).forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    if (ctrlId === "feedTypeCtrl") {
+      document.getElementById("breastRow").style.display = btn.dataset.val === "Breast" ? "block" : "none";
+    }
+  }
+
+  function getSeg(ctrlId) {
+    const el = document.querySelector(`#${ctrlId} .seg-btn.on`);
+    return el ? el.dataset.val : null;
+  }
+
+  // Shared helper: update-in-place or insert new
+  function commitEvent(id, type, data, timestamp) {
+    if (id) {
+      const idx = state.events.findIndex(e => e.id === id);
+      if (idx !== -1) state.events[idx] = { id, type, timestamp, data };
+      state.events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      editingId = null;
+      return true;
+    }
+    state.events.unshift({ id: uid(), type, timestamp, data });
+    return false;
+  }
+
+  // ══════════════════════════════════════════
+  // FEED
+  // ══════════════════════════════════════════
+  function saveFeed() {
+    const feedType = getSeg("feedTypeCtrl");
+    if (!feedType) { toast("Select a feed type", "err"); return; }
+    const side   = feedType === "Breast" ? getSeg("sideCtrl") : null;
+    const amount = document.getElementById("feedAmount").value.trim();
+    const notes  = document.getElementById("feedNotes").value.trim();
+    const ts     = inputToISO(document.getElementById("feedTime").value);
+    const isEdit = !!editingId;
+
+    const timerMins  = isEdit ? 0 : elapsedFeedMins();
+    const finalAmount = amount || (!isEdit && timerMins > 0 ? `${timerMins} min` : "");
+
+    if (feedType === "Breast" && side && side !== "Both") state.lastBreastSide = side;
+
+    commitEvent(editingId, "Feed", { feedType, side, amount: finalAmount, timerMins, notes }, ts);
+
+    document.getElementById("feedAmount").value = "";
+    document.getElementById("feedNotes").value  = "";
+    document.querySelectorAll("#feedTypeCtrl .seg-btn, #sideCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+    _closeSheetUI();
+    persist();
+    toast(isEdit ? "Feed updated ✓" : "Feed logged ✓", "ok");
+  }
+    document.getElementById("breastRow").style.display = "none";
+    if (editingId) return;  // edit pre-fill handled in editEntry
+    if (state.lastBreastSide) {
+      const next = state.lastBreastSide === "Left" ? "Right" : "Left";
+      const btn = document.querySelector(`#sideCtrl [data-val="${next}"]`);
+      if (btn) {
+        document.querySelectorAll("#sideCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+        btn.classList.add("on");
+        document.querySelectorAll("#feedTypeCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+        document.querySelector(`#feedTypeCtrl [data-val="Breast"]`).classList.add("on");
+        document.getElementById("breastRow").style.display = "block";
+      }
+    }
+  }
+
+  function saveFeed() {
+    const feedType = getSeg("feedTypeCtrl");
+    if (!feedType) { toast("Select a feed type", "err"); return; }
+    const side   = feedType === "Breast" ? getSeg("sideCtrl") : null;
+    const amount = document.getElementById("feedAmount").value.trim();
+    const notes  = document.getElementById("feedNotes").value.trim();
+
+    if (feedType === "Breast" && side && side !== "Both") {
+      state.lastBreastSide = side;
+    }
+
+    const timerMins = elapsedFeedMins();
+    const finalAmount = amount || (timerMins > 0 ? `${timerMins} min` : "");
+
+    state.events.unshift({ id:uid(), type:"Feed", timestamp:nowISO(), data:{ feedType, side, amount: finalAmount, timerMins, notes } });
+    document.getElementById("feedAmount").value = "";
+    document.getElementById("feedNotes").value  = "";
+    document.querySelectorAll("#feedTypeCtrl .seg-btn, #sideCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+    closeSheet();
+    persist();
+    toast("Feed logged ✓", "ok");
+  }
+
+  // ══════════════════════════════════════════
+  // NAPPY
+  // ══════════════════════════════════════════
+  function saveNappy() {
+    const nappyType = getSeg("nappyCtrl");
+    if (!nappyType) { toast("Select a nappy type", "err"); return; }
+    const details = document.getElementById("nappyDetails").value.trim();
+    const notes   = document.getElementById("nappyNotes").value.trim();
+    const ts      = inputToISO(document.getElementById("nappyTime").value);
+    const isEdit  = !!editingId;
+
+    commitEvent(editingId, "Nappy", { nappyType, details, notes }, ts);
+
+    document.getElementById("nappyDetails").value = "";
+    document.getElementById("nappyNotes").value   = "";
+    document.querySelectorAll("#nappyCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+    _closeSheetUI();
+    persist();
+    toast(isEdit ? "Nappy updated ✓" : "Nappy logged ✓", "ok");
+  }
+
+  // ══════════════════════════════════════════
+  // SLEEP
+  // ══════════════════════════════════════════
+  function handleSleepTap() {
+    if (state.currentSleep) endSleep();
+    else startSleep();
+  }
+
+  function startSleep() {
+    state.currentSleep = nowISO();
+    persist();
+    startTick();
+    toast("Sleep started ✓", "ok");
+  }
+
+  function endSleep() {
+    if (!state.currentSleep) return;
+    const start = state.currentSleep;
+    const end   = nowISO();
+    const minutes = Math.max(0, Math.round((new Date(end) - new Date(start)) / 60000));
+    state.events.unshift({ id:uid(), type:"Sleep", timestamp:end, data:{ start, end, minutes } });
+    state.currentSleep = null;
+    stopTick();
+    persist();
+    toast(`Sleep ended · ${fmtDur(minutes)} ✓`, "ok");
+  }
+
+  function cancelSleep() {
+    state.currentSleep = null;
+    stopTick();
+    persist();
+    toast("Sleep cancelled");
+  }
+
+  function startTick() {
+    stopTick();
+    updateTick();
+    sleepTick = setInterval(updateTick, 1000);
+  }
+
+  function stopTick() {
+    if (sleepTick) { clearInterval(sleepTick); sleepTick = null; }
+  }
+
+  function updateTick() {
+    if (!state.currentSleep) return;
+    const s = Math.floor((Date.now() - new Date(state.currentSleep)) / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sc = s % 60;
+    const timerEl = document.getElementById("sleepTimer");
+    if (timerEl) timerEl.textContent = h > 0
+      ? `${h}:${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`
+      : `${m}:${String(sc).padStart(2,"0")}`;
+  }
+
+  // ══════════════════════════════════════════
+  // MEDS
+  // ══════════════════════════════════════════
+  function renderMedSheet() {
+    const box = document.getElementById("quickMedBtns");
+    if (!state.quickMeds.length) { box.innerHTML = ""; return; }
+    box.innerHTML = `<div class="seg seg-2" style="margin-bottom:4px">${
+      state.quickMeds.map(m => `<button class="seg-btn" onclick="pickMed('${esc(m)}')">${esc(m)}</button>`).join("")
+    }</div>`;
+  }
+
+  function pickMed(name) {
+    document.getElementById("medName").value = name;
+    document.getElementById("medDose").focus();
+  }
+
+  function saveMed() {
+    const name  = document.getElementById("medName").value.trim();
+    if (!name) { toast("Enter medication name", "err"); return; }
+    const dose  = document.getElementById("medDose").value.trim();
+    const notes = document.getElementById("medNotes").value.trim();
+    const ts    = inputToISO(document.getElementById("medTime").value);
+    const isEdit = !!editingId;
+
+    commitEvent(editingId, "Med", { name, dose, notes }, ts);
+
+    document.getElementById("medName").value  = "";
+    document.getElementById("medDose").value  = "";
+    document.getElementById("medNotes").value = "";
+    _closeSheetUI();
+    persist();
+    toast(isEdit ? `${name} updated ✓` : `${name} logged ✓`, "ok");
+  }
+
+  function addQuickMed() {
+    const name = document.getElementById("newMedInput").value.trim();
+    if (!name) { toast("Enter a medication name", "err"); return; }
+    if (state.quickMeds.includes(name)) { toast("Already in list"); return; }
+    state.quickMeds.push(name);
+    document.getElementById("newMedInput").value = "";
+    persist();
+    toast(`${name} added ✓`, "ok");
+  }
+
+  function removeQuickMed(name) {
+    state.quickMeds = state.quickMeds.filter(m => m !== name);
+    persist();
+  }
+
+  // ══════════════════════════════════════════
+  // NOTE
+  // ══════════════════════════════════════════
+  function saveNote() {
+    const text  = document.getElementById("noteText").value.trim();
+    if (!text) { toast("Enter a note", "err"); return; }
+    const ts    = inputToISO(document.getElementById("noteTime").value);
+    const isEdit = !!editingId;
+
+    commitEvent(editingId, "Note", { text }, ts);
+
+    document.getElementById("noteText").value = "";
+    _closeSheetUI();
+    persist();
+    toast(isEdit ? "Note updated ✓" : "Note saved ✓", "ok");
+  }
+
+  // ══════════════════════════════════════════
+  // WEIGHT
+  // ══════════════════════════════════════════
+  function saveWeight() {
+    const raw = document.getElementById("weightVal").value.trim();
+    if (!raw || isNaN(Number(raw)) || Number(raw) <= 0) { toast("Enter a valid weight", "err"); return; }
+    const unit  = getSeg("weightUnitCtrl") || "g";
+    const value = Number(raw);
+    const notes = document.getElementById("weightNotes").value.trim();
+    const ts    = inputToISO(document.getElementById("weightTime").value);
+    const isEdit = !!editingId;
+
+    commitEvent(editingId, "Weight", { value, unit, notes }, ts);
+
+    document.getElementById("weightVal").value   = "";
+    document.getElementById("weightNotes").value = "";
+    _closeSheetUI();
+    persist();
+    toast(isEdit ? `${value}${unit} updated ✓` : `${value}${unit} logged ✓`, "ok");
+  }
+
+  function renderWeights() {
+    const list = document.getElementById("weightList");
+    if (!list) return;
+    const weights = state.events.filter(e => e.type === "Weight");
+    if (!weights.length) { list.innerHTML = `<div class="tiny">No weights logged yet.</div>`; return; }
+    list.innerHTML = weights.slice(0, 12).map((e, i) => {
+      const display = `${e.data.value}${e.data.unit}`;
+      // Show gain vs previous entry
+      let gain = "";
+      if (i < weights.length - 1) {
+        const prev = weights[i + 1];
+        const prevG = prev.data.unit === "kg" ? prev.data.value * 1000 : prev.data.value;
+        const curG  = e.data.unit  === "kg" ? e.data.value  * 1000 : e.data.value;
+        const diff  = curG - prevG;
+        if (diff !== 0) gain = `<span style="color:${diff>0?"var(--green)":"var(--red)");font-size:0.8rem;margin-left:8px">${diff>0?"+":""}${diff}g</span>`;
+      }
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;
+          padding:12px 14px;background:var(--card2);border-radius:13px;border:1px solid var(--border)">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:500;color:var(--green)">
+              ${esc(display)}${gain}
+            </div>
+            <div class="tiny" style="margin-top:3px">${fmtDT(e.timestamp)}${e.data.notes?" · "+esc(e.data.notes):""}</div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ══════════════════════════════════════════
+  // EDIT & DELETE
+  // ══════════════════════════════════════════
+  function deleteEntry(id) {
+    const e = state.events.find(ev => ev.id === id);
+    if (!e) return;
+    if (!confirm(`Delete this ${e.type} entry?`)) return;
+    state.events = state.events.filter(ev => ev.id !== id);
+    persist();
+    toast(`${e.type} entry deleted`);
+  }
+
+  function editEntry(id) {
+    const e = state.events.find(ev => ev.id === id);
+    if (!e) return;
+    editingId = id;
+
+    if (e.type === "Feed") {
+      openSheet("feed");
+      setTimeout(() => {
+        document.querySelectorAll("#feedTypeCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+        document.querySelectorAll("#sideCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+        const typeBtn = document.querySelector(`#feedTypeCtrl [data-val="${e.data.feedType}"]`);
+        if (typeBtn) typeBtn.classList.add("on");
+        if (e.data.feedType === "Breast" && e.data.side) {
+          document.getElementById("breastRow").style.display = "block";
+          const sideBtn = document.querySelector(`#sideCtrl [data-val="${e.data.side}"]`);
+          if (sideBtn) sideBtn.classList.add("on");
+        } else {
+          document.getElementById("breastRow").style.display = "none";
+        }
+        document.getElementById("feedAmount").value = e.data.amount || "";
+        document.getElementById("feedNotes").value  = e.data.notes  || "";
+        document.getElementById("feedTime").value   = toInputDT(e.timestamp);
+      }, 60);
+    }
+    else if (e.type === "Nappy") {
+      openSheet("nappy");
+      setTimeout(() => {
+        document.querySelectorAll("#nappyCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+        const btn = document.querySelector(`#nappyCtrl [data-val="${e.data.nappyType}"]`);
+        if (btn) btn.classList.add("on");
+        document.getElementById("nappyDetails").value = e.data.details || "";
+        document.getElementById("nappyNotes").value   = e.data.notes   || "";
+        document.getElementById("nappyTime").value    = toInputDT(e.timestamp);
+      }, 60);
+    }
+    else if (e.type === "Med") {
+      openSheet("meds");
+      setTimeout(() => {
+        document.getElementById("medName").value  = e.data.name  || "";
+        document.getElementById("medDose").value  = e.data.dose  || "";
+        document.getElementById("medNotes").value = e.data.notes || "";
+        document.getElementById("medTime").value  = toInputDT(e.timestamp);
+      }, 60);
+    }
+    else if (e.type === "Note") {
+      openSheet("note");
+      setTimeout(() => {
+        document.getElementById("noteText").value = e.data.text || "";
+        document.getElementById("noteTime").value = toInputDT(e.timestamp);
+      }, 60);
+    }
+    else if (e.type === "Weight") {
+      openSheet("weight");
+      setTimeout(() => {
+        document.getElementById("weightVal").value   = e.data.value || "";
+        document.getElementById("weightNotes").value = e.data.notes || "";
+        document.getElementById("weightTime").value  = toInputDT(e.timestamp);
+        document.querySelectorAll("#weightUnitCtrl .seg-btn").forEach(b => b.classList.remove("on"));
+        const uBtn = document.querySelector(`#weightUnitCtrl [data-val="${e.data.unit || 'g'}"]`);
+        if (uBtn) uBtn.classList.add("on");
+      }, 60);
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // TROUBLESHOOTER
+  // ══════════════════════════════════════════
+  function toggleTrouble(key) {
+    state.troubleChecks[key] = !state.troubleChecks[key];
+    persist();
+  }
+
+  function resetTrouble() {
+    state.troubleChecks = {};
+    persist();
+    toast("Checklist reset");
+  }
+
+  // ══════════════════════════════════════════
+  // HANDOVER
+  // ══════════════════════════════════════════
+  function saveHandover() {
+    state.handover = {
+      mood:  document.getElementById("hvMood").value,
+      tried: document.getElementById("hvTried").value.trim(),
+      next:  document.getElementById("hvNext").value.trim(),
+      note:  document.getElementById("hvNote").value.trim()
+    };
+    persist();
+    buildHandover();
+    toast("Handover saved ✓", "ok");
+  }
+
+  function buildHandover() {
+    const lf = findLast("Feed");
+    const ln = findLast("Nappy");
+    const ls = findLast("Sleep");
+    const baby = state.babyName || "Baby";
+    const lines = [];
+
+    lines.push(`${baby} handover · ${new Date().toLocaleString([],{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}`);
+    lines.push("");
+
+    lines.push(lf
+      ? `Last feed: ${fmtTime(lf.timestamp)} (${ago(lf.timestamp)}) — ${describeEvent(lf)}`
+      : "Last feed: not logged");
+    lines.push(ln
+      ? `Last nappy: ${fmtTime(ln.timestamp)} (${ago(ln.timestamp)}) — ${describeEvent(ln)}`
+      : "Last nappy: not logged");
+
+    if (state.currentSleep) {
+      lines.push(`Sleep: asleep since ${fmtTime(state.currentSleep)} (${ago(state.currentSleep)})`);
+    } else if (ls) {
+      lines.push(`Last sleep: ${describeEvent(ls)} — ended ${ago(ls.timestamp)}`);
+    } else {
+      lines.push("Sleep: not logged");
+    }
+
+    if (state.lastBreastSide) {
+      const next = state.lastBreastSide === "Left" ? "Right" : "Left";
+      lines.push(`Next breast: start on ${next}`);
+    }
+
+    const lw = state.events.find(e => e.type === "Weight");
+    if (lw) lines.push(`Last weight: ${lw.data.value}${lw.data.unit} (${ago(lw.timestamp)})`);
+
+    if (state.handover.mood)  lines.push(`\nMood: ${state.handover.mood}`);
+    if (state.handover.tried) lines.push(`Things tried: ${state.handover.tried}`);
+    if (state.handover.next)  lines.push(`Next likely need: ${state.handover.next}`);
+    if (state.handover.note)  lines.push(`\nNote: ${state.handover.note}`);
+
+    // Auto-suggest if no next note
+    if (!state.handover.next) {
+      if (lf && hoursAgo(lf.timestamp) >= 2.5) lines.push("\nSuggested: a feed may be due soon.");
+      else if (ln && hoursAgo(ln.timestamp) >= 2) lines.push("\nSuggested: worth a nappy check.");
+    }
+
+    document.getElementById("hvPreview").textContent = lines.join("\n");
+  }
+
+  async function copyHandover() {
+    const text = document.getElementById("hvPreview").textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Copied ✓", "ok");
+    } catch {
+      toast("Long-press the text to copy", "err");
+    }
+  }
+
+  async function shareHandover() {
+    const text = document.getElementById("hvPreview").textContent;
+    if (navigator.share) {
+      try { await navigator.share({ text }); } catch {}
+    } else {
+      await copyHandover();
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // BAG
+  // ══════════════════════════════════════════
+  function toggleBag(key) {
+    state.bagChecks[key] = !state.bagChecks[key];
+    persist();
+  }
+
+  function resetBag() {
+    BAG_ITEMS.forEach(i => state.bagChecks[i.key] = false);
+    persist();
+    toast("Bag checklist reset");
+  }
+
+  // ══════════════════════════════════════════
+  // QUESTIONS
+  // ══════════════════════════════════════════
+  function addQuestion() {
+    const text = document.getElementById("qInput").value.trim();
+    if (!text) { toast("Enter a question", "err"); return; }
+    state.questions.unshift({ id:uid(), text, done:false, created:nowISO() });
+    document.getElementById("qInput").value = "";
+    persist();
+    toast("Question added ✓", "ok");
+  }
+
+  function toggleQ(id) {
+    const q = state.questions.find(q => q.id === id);
+    if (q) q.done = !q.done;
+    persist();
+  }
+
+  function deleteQ(id) {
+    state.questions = state.questions.filter(q => q.id !== id);
+    persist();
+  }
+
+  // ══════════════════════════════════════════
+  // SETTINGS
+  // ══════════════════════════════════════════
+  function saveSettings() {
+    state.babyName = document.getElementById("babyName").value.trim();
+    state.babyDOB  = document.getElementById("babyDOB").value;
+    persist();
+    toast("Settings saved ✓", "ok");
+  }
+
+  // ══════════════════════════════════════════
+  // DATA TOOLS
+  // ══════════════════════════════════════════
+  function undoLast() {
+    if (!state.events.length) { toast("Nothing to undo", "err"); return; }
+    const e = state.events[0];
+    state.events.shift();
+    // Restore breast side if needed
+    if (e.type === "Feed" && e.data.feedType === "Breast") {
+      const prev = state.events.find(e => e.type === "Feed" && e.data.feedType === "Breast" && e.data.side && e.data.side !== "Both");
+      state.lastBreastSide = prev ? prev.data.side : null;
+    }
+    persist();
+    toast(`${e.type} entry removed`);
+  }
+
+  function clearData() {
+    if (!confirm("Clear all data on this device? This cannot be undone.")) return;
+    state = JSON.parse(JSON.stringify(DEFAULTS));
+    localStorage.removeItem(KEY);
+    persist();
+    toast("All data cleared");
+  }
+
+  function exportCSV() {
+    if (!state.events.length) { toast("No data to export", "err"); return; }
+    const rows = [["timestamp","type","details"]];
+    [...state.events].reverse().forEach(e => rows.push([e.timestamp, e.type, describeEvent(e)]));
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    dl(new Blob([csv],{type:"text/csv;charset=utf-8"}), `baby-log-${new Date().toISOString().slice(0,10)}.csv`);
+    toast("CSV exported ✓", "ok");
+  }
+
+  function exportJSON() {
+    const json = JSON.stringify(state, null, 2);
+    dl(new Blob([json],{type:"application/json"}), `baby-backup-${new Date().toISOString().slice(0,10)}.json`);
+    toast("Backup downloaded ✓", "ok");
+  }
+
+  function importJSON() {
+    document.getElementById("importFileInput").click();
+  }
+
+  function handleImportFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (!imported || typeof imported !== "object" || Array.isArray(imported)) {
+          throw new Error("Not a valid backup file");
+        }
+        const eventCount = Array.isArray(imported.events) ? imported.events.length : 0;
+        const babyLabel  = imported.babyName ? ` for ${imported.babyName}` : "";
+        const confirmed  = confirm(
+          `Restore this backup${babyLabel}?\n\n` +
+          `It contains ${eventCount} log entries.\n\n` +
+          `This will replace everything currently saved on this device.`
+        );
+        if (!confirmed) { event.target.value = ""; return; }
+        state = merge(JSON.parse(JSON.stringify(DEFAULTS)), imported);
+        persist();
+        toast(`Restored ${eventCount} entries ✓`, "ok");
+      } catch {
+        toast("Couldn't read file — is this a Command Centre backup?", "err");
+      }
+      event.target.value = ""; // allow re-selecting the same file
+    };
+    reader.readAsText(file);
+  }
+
+  function dl(blob, name) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ══════════════════════════════════════════
+  // CHARTS
+  // ══════════════════════════════════════════
+
+  const C = {
+    BLUE:   '#6090f0',
+    PURPLE: '#9878f0',
+    AMBER:  '#e8a030',
+    GREEN:  '#38c878'
+  };
+
+  function hexAlpha(hex, a) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function last14Days() {
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i);
+      const dd = d.getDate(), mm = d.getMonth()+1;
+      days.push({ date: d, label: `${dd}/${mm}` });
+    }
+    return days;
+  }
+
+  function sameDay(iso, date) {
+    return new Date(iso).toDateString() === date.toDateString();
+  }
+
+  function setupCanvas(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    if (!w || !h) return null;
+    canvas.width  = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx, w, h };
+  }
+
+  function drawGrid(ctx, PAD, cW, cH, w) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.055)';
+    ctx.lineWidth = 1;
+    [0,.25,.5,.75,1].forEach(f => {
+      const y = PAD.t + cH*(1-f);
+      ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(w-PAD.r, y); ctx.stroke();
+    });
+  }
+
+  function drawYLabels(ctx, PAD, cH, min, max) {
+    ctx.fillStyle = 'rgba(112,112,160,0.7)';
+    ctx.font = '10px DM Mono, monospace';
+    ctx.textAlign = 'right';
+    [0,.5,1].forEach(f => {
+      const v = min + f*(max-min);
+      const disp = v >= 10 ? Math.round(v) : +v.toFixed(1);
+      ctx.fillText(disp, PAD.l-4, PAD.t + cH*(1-f) + 3);
+    });
+  }
+
+  function drawBar(id, labels, values, color) {
+    const s = setupCanvas(id);
+    if (!s) return;
+    const { ctx, w, h } = s;
+    const PAD = { t:10, r:8, b:28, l:34 };
+    const cW = w - PAD.l - PAD.r;
+    const cH = h - PAD.t - PAD.b;
+    const n  = values.length;
+    const mx = Math.max(...values, 1);
+
+    ctx.clearRect(0, 0, w, h);
+    drawGrid(ctx, PAD, cW, cH, w);
+    drawYLabels(ctx, PAD, cH, 0, mx);
+
+    const slotW = cW / n;
+    const barW  = Math.max(slotW * 0.55, 3);
+
+    values.forEach((v, i) => {
+      const bH = Math.max((v/mx)*cH, v > 0 ? 2 : 0);
+      const x  = PAD.l + i*slotW + (slotW-barW)/2;
+      const y  = PAD.t + cH - bH;
+
+      ctx.fillStyle = v > 0 ? color : 'rgba(255,255,255,0.05)';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, barW, Math.max(bH,1), [3,3,0,0]);
+      else ctx.rect(x, y, barW, Math.max(bH,1));
+      ctx.fill();
+
+      // X label — every other for 14-day charts
+      if (n <= 7 || i % 2 === 0) {
+        ctx.fillStyle = 'rgba(112,112,160,0.6)';
+        ctx.font = '9px DM Sans, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(labels[i], x + barW/2, h - 7);
+      }
+    });
+  }
+
+  function drawLine(id, values, color) {
+    const s = setupCanvas(id);
+    if (!s) return;
+    const { ctx, w, h } = s;
+    ctx.clearRect(0, 0, w, h);
+
+    if (values.length < 2) {
+      ctx.fillStyle = 'rgba(112,112,160,0.45)';
+      ctx.font = '13px DM Sans, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Not enough data yet — keep logging!', w/2, h/2 + 4);
+      return;
+    }
+
+    const PAD = { t:12, r:14, b:24, l:38 };
+    const cW = w - PAD.l - PAD.r;
+    const cH = h - PAD.t - PAD.b;
+    const n   = values.length;
+    const mn  = Math.min(...values) * 0.9;
+    const mx  = Math.max(...values) * 1.1 || 1;
+    const rng = mx - mn || 1;
+
+    drawGrid(ctx, PAD, cW, cH, w);
+    drawYLabels(ctx, PAD, cH, mn, mx);
+
+    const xp = i => PAD.l + i * (cW/(n-1));
+    const yp = v => PAD.t + cH*(1-(v-mn)/rng);
+
+    // Area
+    ctx.beginPath();
+    ctx.moveTo(xp(0), yp(values[0]));
+    values.forEach((v,i) => { if (i>0) ctx.lineTo(xp(i), yp(v)); });
+    ctx.lineTo(xp(n-1), PAD.t+cH);
+    ctx.lineTo(xp(0),   PAD.t+cH);
+    ctx.closePath();
+    ctx.fillStyle = hexAlpha(color, 0.12);
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(xp(0), yp(values[0]));
+    values.forEach((v,i) => { if (i>0) ctx.lineTo(xp(i), yp(v)); });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Endpoint dot
+    ctx.beginPath(); ctx.arc(xp(n-1), yp(values[n-1]), 4.5, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+
+    // Trend line (simple linear regression)
+    if (n >= 4) {
+      const mx2 = (n-1)/2;
+      const my  = values.reduce((s,v)=>s+v,0)/n;
+      let num=0, den=0;
+      values.forEach((v,i) => { num += (i-mx2)*(v-my); den += (i-mx2)**2; });
+      const slope = num/den;
+      const intercept = my - slope*mx2;
+      const ty0 = intercept;
+      const ty1 = slope*(n-1)+intercept;
+
+      ctx.beginPath();
+      ctx.moveTo(xp(0),   yp(ty0));
+      ctx.lineTo(xp(n-1), yp(ty1));
+      ctx.strokeStyle = hexAlpha(color, 0.35);
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4,4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Edge labels
+    ctx.fillStyle = 'rgba(112,112,160,0.55)';
+    ctx.font = '9px DM Sans, sans-serif';
+    ctx.textAlign = 'left';  ctx.fillText('oldest', xp(0)+2,   h-5);
+    ctx.textAlign = 'right'; ctx.fillText('newest', xp(n-1)-2, h-5);
+  }
+
+  function trendArrow(vals) {
+    if (vals.length < 4) return '';
+    const half = Math.floor(vals.length/2);
+    const a1 = vals.slice(0,half).reduce((s,v)=>s+v,0)/half;
+    const a2 = vals.slice(half).reduce((s,v)=>s+v,0)/(vals.length-half);
+    const d = a2 - a1;
+    if (d >  0.05*a1) return ' ↑';
+    if (d < -0.05*a1) return ' ↓';
+    return ' →';
+  }
+
+  function renderCharts() {
+    if (!document.getElementById('page-charts').classList.contains('active')) return;
+
+    const days = last14Days();
+
+    // ── Feeds per day ─────────────────────────
+    const feedVals = days.map(d =>
+      state.events.filter(e => e.type==='Feed' && sameDay(e.timestamp, d.date)).length
+    );
+    drawBar('chartFeeds', days.map(d=>d.label), feedVals, C.BLUE);
+    const avgF = feedVals.slice(-7).reduce((s,v)=>s+v,0)/7;
+    const todF = feedVals[feedVals.length-1];
+    document.getElementById('chartFeedsStat').textContent =
+      `7-day avg: ${avgF.toFixed(1)} per day · Today: ${todF}`;
+
+    // ── Sleep per day ─────────────────────────
+    const sleepVals = days.map(d =>
+      +(state.events.filter(e => e.type==='Sleep' && sameDay(e.timestamp, d.date))
+        .reduce((s,e)=>s+(e.data.minutes||0),0)/60).toFixed(1)
+    );
+    drawBar('chartSleep', days.map(d=>d.label), sleepVals, C.PURPLE);
+    const avgS = sleepVals.slice(-7).reduce((s,v)=>s+v,0)/7;
+    const todS = sleepVals[sleepVals.length-1];
+    document.getElementById('chartSleepStat').textContent =
+      `7-day avg: ${avgS.toFixed(1)}h per day · Today: ${todS}h`;
+
+    // ── Feed gaps ─────────────────────────────
+    const feeds = state.events.filter(e=>e.type==='Feed').slice(0,40).reverse();
+    const gaps  = [];
+    for (let i=1; i<feeds.length; i++) {
+      const g = (new Date(feeds[i].timestamp)-new Date(feeds[i-1].timestamp))/3600000;
+      if (g>0.1 && g<8) gaps.push(+g.toFixed(2));
+    }
+    drawLine('chartGaps', gaps, C.AMBER);
+    if (gaps.length>0) {
+      const recent10 = gaps.slice(-10);
+      const avgG = recent10.reduce((s,v)=>s+v,0)/recent10.length;
+      const hh = Math.floor(avgG), mm = Math.round((avgG-hh)*60);
+      document.getElementById('chartGapsStat').textContent =
+        `Recent avg: ${hh}h ${mm}m between feeds${trendArrow(gaps)}`;
+    } else {
+      document.getElementById('chartGapsStat').textContent = 'Log more feeds to see gaps';
+    }
+
+    // ── Sleep stretches ───────────────────────
+    const stretches = state.events
+      .filter(e=>e.type==='Sleep' && (e.data.minutes||0)>0)
+      .slice(0,30).reverse()
+      .map(e=>+(e.data.minutes/60).toFixed(2));
+    drawLine('chartStretches', stretches, C.GREEN);
+    if (stretches.length>0) {
+      const recent = stretches.slice(-5);
+      const avgR   = recent.reduce((s,v)=>s+v,0)/recent.length;
+      const longest = Math.max(...stretches);
+      const lh = Math.floor(longest), lm = Math.round((longest-lh)*60);
+      document.getElementById('chartStretchStat').textContent =
+        `Longest: ${lh}h ${lm}m · Recent avg: ${avgR.toFixed(1)}h${trendArrow(stretches)}`;
+    } else {
+      document.getElementById('chartStretchStat').textContent = 'Log more sleeps to see stretches';
+    }
+
+    // ── Weight ────────────────────────────────
+    const wEvts = state.events.filter(e=>e.type==='Weight').slice(0,30).reverse();
+    const wCard = document.getElementById('weightChartCard');
+    if (wEvts.length>=2) {
+      wCard.style.display = '';
+      const grams = wEvts.map(e=>e.data.unit==='kg'?e.data.value*1000:e.data.value);
+      drawLine('chartWeight', grams, C.GREEN);
+      const gain = grams[grams.length-1]-grams[0];
+      const gainStr = (gain>=0?'+':'')+Math.round(gain)+'g since first entry';
+      document.getElementById('chartWeightStat').textContent = gainStr;
+    } else {
+      wCard.style.display = 'none';
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════
+  function render() {
+    renderHeader();
+    renderDashboard();
+    renderRecent();
+    renderNight();
+    renderHandoverInputs();
+    buildHandover();
+    renderBag();
+    renderQuickMedList();
+    renderQuestions();
+    renderSettings();
+    renderWeights();
+    renderCharts();
+  }
+
+  function renderHeader() {
+    const name = state.babyName ? `${state.babyName}'s Centre` : "Command Centre";
+    document.getElementById("appTitle").textContent = name;
+    document.getElementById("datePill").textContent = new Date().toLocaleDateString([], {
+      weekday:"long", day:"numeric", month:"short"
+    });
+    const age = babyAge();
+    const agePill = document.getElementById("agePill");
+    if (age) { agePill.textContent = age; agePill.style.display = ""; }
+    else agePill.style.display = "none";
+  }
+
+  function renderDashboard() {
+    const lf = findLast("Feed");
+    const ln = findLast("Nappy");
+    const ls = findLast("Sleep");
+    const today = todayEvts();
+
+    // Feed card
+    setMetric("feed", lf,
+      lf ? fmtTime(lf.timestamp) : "—",
+      lf ? `${lf.data.feedType}${lf.data.side ? " · "+lf.data.side : ""} · ${ago(lf.timestamp)}` : "No feed logged",
+      lf ? urgency(lf.timestamp) : ""
+    );
+    if (lf) document.getElementById("feedSub").textContent = ago(lf.timestamp);
+
+    // Nappy card
+    setMetric("nappy", ln,
+      ln ? fmtTime(ln.timestamp) : "—",
+      ln ? `${ln.data.nappyType} · ${ago(ln.timestamp)}` : "No nappy logged",
+      ln ? urgency(ln.timestamp) : ""
+    );
+    if (ln) document.getElementById("nappySub").textContent = ago(ln.timestamp);
+
+    // Sleep card
+    if (state.currentSleep) {
+      setMetric("sleep", true, "Now", `Started ${fmtTime(state.currentSleep)} · ${ago(state.currentSleep)}`, "ok");
+    } else if (ls) {
+      setMetric("sleep", true, fmtDur(ls.data.minutes), `Ended ${fmtTime(ls.data.end)} · ${ago(ls.data.end)}`, "");
+    } else {
+      setMetric("sleep", false, "—", "No sleep logged", "");
+    }
+
+    // Today totals
+    const fc  = today.filter(e => e.type === "Feed").length;
+    const nc  = today.filter(e => e.type === "Nappy").length;
+    const sm  = today.filter(e => e.type === "Sleep").reduce((s,e) => s + (e.data.minutes||0), 0);
+    document.getElementById("mv-today").textContent = `${fc}F · ${nc}N`;
+    document.getElementById("mn-today").textContent = sm > 0 ? `Sleep: ${fmtDur(sm)}` : "Sleep: none logged";
+
+    // Breast side banner
+    const sb = document.getElementById("sideBanner");
+    if (state.lastBreastSide) {
+      const next = state.lastBreastSide === "Left" ? "→ RIGHT" : "← LEFT";
+      document.getElementById("sideNext").textContent = next;
+      const lastBF = state.events.find(e => e.type === "Feed" && e.data.feedType === "Breast" && e.data.side);
+      document.getElementById("sideLast").textContent = lastBF
+        ? `${state.lastBreastSide} · ${ago(lastBF.timestamp)}`
+        : state.lastBreastSide;
+      sb.classList.add("show");
+    } else {
+      sb.classList.remove("show");
+    }
+
+    // Sleep active banner
+    const sleepBannerEl = document.getElementById("sleepBanner");
+    if (state.currentSleep) {
+      sleepBannerEl.classList.add("show");
+      document.getElementById("sleepSub").textContent = `Started ${fmtTime(state.currentSleep)}`;
+      document.getElementById("sleepBtn").className = "log-btn sleep on";
+      document.getElementById("sleepBtnTitle").textContent = "End sleep";
+      document.getElementById("sleepBtnSub").textContent = ago(state.currentSleep);
+    } else {
+      sleepBannerEl.classList.remove("show");
+      document.getElementById("sleepBtn").className = "log-btn sleep";
+      document.getElementById("sleepBtnTitle").textContent = "Sleep";
+      document.getElementById("sleepBtnSub").textContent = ls ? ago(ls.timestamp) : "Tap to start";
+    }
+  }
+
+  function setMetric(id, hasData, val, note, u) {
+    const card = document.getElementById(`mc-${id}`);
+    const valEl = document.getElementById(`mv-${id}`);
+    card.className = `metric-card${u ? " "+u : ""}`;
+    valEl.className = `metric-value${u ? " "+u : ""}`;
+    valEl.textContent = val;
+    document.getElementById(`mn-${id}`).textContent = note;
+  }
+
+  function renderRecent() {
+    const list = document.getElementById("recentList");
+    const items = state.events.slice(0, 30);
+    if (!items.length) { list.innerHTML = `<div class="tiny">No entries yet.</div>`; return; }
+    const tc = { Feed:"feed", Nappy:"nappy", Sleep:"sleep", Med:"med", Note:"note", Weight:"weight" };
+    const editable = new Set(["Feed","Nappy","Med","Note","Weight"]);
+    list.innerHTML = items.map(e => `
+      <article class="entry">
+        <div class="entry-header">
+          <span class="entry-type ${tc[e.type]||""}">${esc(e.type)}</span>
+          <span class="entry-time">${fmtDT(e.timestamp)}</span>
+        </div>
+        <div class="entry-body">${esc(describeEvent(e))}</div>
+        <div class="entry-actions">
+          ${editable.has(e.type) ? `<button class="entry-act-btn" onclick="editEntry('${e.id}')">Edit</button>` : ""}
+          <button class="entry-act-btn danger" onclick="deleteEntry('${e.id}')">Delete</button>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  function renderNight() {
+    const lf = findLast("Feed");
+    const ln = findLast("Nappy");
+
+    // Status cards
+    if (lf) {
+      const u = urgency(lf.timestamp);
+      document.getElementById("nt-mc-feed").className = `metric-card ${u}`;
+      document.getElementById("nt-mv-feed").className = `metric-value ${u}`;
+      document.getElementById("nt-mv-feed").textContent = fmtTime(lf.timestamp);
+      document.getElementById("nt-mn-feed").textContent = ago(lf.timestamp);
+    }
+    if (ln) {
+      const u = urgency(ln.timestamp);
+      document.getElementById("nt-mc-nappy").className = `metric-card ${u}`;
+      document.getElementById("nt-mv-nappy").className = `metric-value ${u}`;
+      document.getElementById("nt-mv-nappy").textContent = fmtTime(ln.timestamp);
+      document.getElementById("nt-mn-nappy").textContent = ago(ln.timestamp);
+    }
+
+    // Checklist
+    document.getElementById("troubleList").innerHTML = TROUBLE_ITEMS.map(item => {
+      const done = !!state.troubleChecks[item.key];
+      return `
+        <button class="check-card${done?" done":""}" onclick="toggleTrouble('${item.key}')">
+          <div class="check-head">
+            <span>${esc(item.title)}</span>
+            <span class="tick">${done?"✓":""}</span>
+          </div>
+          <div class="check-note">${esc(item.note)}</div>
+        </button>`;
+    }).join("");
+
+    // Suggestion
+    const checked = Object.values(state.troubleChecks).filter(Boolean).length;
+    let suggestion = "Tap each card as you check it — this will track your progress.";
+    if (lf && hoursAgo(lf.timestamp) >= 2.5) {
+      suggestion = "It's been a while since the last feed. That's often worth trying first.";
+    } else if (ln && hoursAgo(ln.timestamp) >= 2) {
+      suggestion = "A nappy check is quick and easy — worth doing next.";
+    } else if (checked >= 5) {
+      suggestion = "You've covered the basics. Try a dark quiet room, steady sound, and minimal handling.";
+    } else if (checked >= 7) {
+      suggestion = "You've checked everything. If you're still worried, trust your gut and call for help.";
+    }
+    document.getElementById("ntSuggestion").textContent = suggestion;
+  }
+
+  function renderHandoverInputs() {
+    document.getElementById("hvMood").value  = state.handover.mood  || "";
+    document.getElementById("hvTried").value = state.handover.tried || "";
+    document.getElementById("hvNext").value  = state.handover.next  || "";
+    document.getElementById("hvNote").value  = state.handover.note  || "";
+  }
+
+  function renderBag() {
+    document.getElementById("bagList").innerHTML = BAG_ITEMS.map(item => {
+      const done = !!state.bagChecks[item.key];
+      return `
+        <button class="check-card${done?" done":""}" onclick="toggleBag('${item.key}')">
+          <div class="check-head">
+            <span>${esc(item.title)}</span>
+            <span class="tick">${done?"✓":""}</span>
+          </div>
+          <div class="check-note">${esc(item.note)}</div>
+        </button>`;
+    }).join("");
+  }
+
+  function renderQuickMedList() {
+    const list = document.getElementById("quickMedList");
+    if (!state.quickMeds.length) {
+      list.innerHTML = `<div class="tiny">No quick meds yet.</div>`;
+      return;
+    }
+    list.innerHTML = state.quickMeds.map(m => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;
+        padding:10px 14px;background:var(--card2);border-radius:12px;border:1px solid var(--border)">
+        <span style="font-size:0.9rem">${esc(m)}</span>
+        <button class="action-btn danger" style="padding:6px 12px;min-height:32px;font-size:0.76rem"
+          onclick="removeQuickMed('${esc(m)}')">Remove</button>
+      </div>`).join("");
+  }
+
+  function renderQuestions() {
+    const list = document.getElementById("qList");
+    if (!state.questions.length) { list.innerHTML = `<div class="tiny">No questions yet.</div>`; return; }
+    list.innerHTML = state.questions.map(q => `
+      <div style="display:grid;gap:8px;padding:12px 14px;
+        background:var(--card2);border-radius:13px;border:1px solid var(--border)${q.done?";opacity:0.55":""}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <div style="font-size:0.88rem;${q.done?"text-decoration:line-through;color:var(--muted)":""}">${esc(q.text)}</div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="action-btn" style="padding:5px 10px;min-height:30px;font-size:0.74rem"
+              onclick="toggleQ('${q.id}')">${q.done?"Reopen":"Done"}</button>
+            <button class="action-btn danger" style="padding:5px 10px;min-height:30px;font-size:0.74rem"
+              onclick="deleteQ('${q.id}')">✕</button>
+          </div>
+        </div>
+        <div class="tiny">${fmtDT(q.created)}</div>
+      </div>`).join("");
+  }
+
+  function renderSettings() {
+    document.getElementById("babyName").value = state.babyName || "";
+    document.getElementById("babyDOB").value  = state.babyDOB  || "";
+  }
+
+  // ══════════════════════════════════════════
+  // INIT
+  // ══════════════════════════════════════════
+  if (state.currentSleep) startTick();
+  render();
+
+  // Refresh time-sensitive elements every minute
+  setInterval(() => {
+    renderHeader();
+    renderDashboard();
+    renderNight();
+  }, 60000);
+
+  // Initial hiding of breast side row in feed sheet
+  document.getElementById("breastRow").style.display = "none";
+
+  // ── PWA: Register service worker ──────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('[SW] Registered, scope:', reg.scope))
+        .catch(err => console.warn('[SW] Registration failed:', err));
+    });
+  }
+</script>
+
+</body>
+</html>
