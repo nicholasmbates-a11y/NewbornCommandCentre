@@ -523,6 +523,20 @@
     @media (max-width: 420px) {
       .action-row { grid-template-columns: 1fr 1fr; }
     }
+
+    /* === NAPPY COLOUR GUIDE === */
+    .colour-guide { display: grid; gap: 7px; }
+    .colour-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 12px;
+      background: var(--card2); border: 1px solid var(--border);
+    }
+    .colour-swatch {
+      width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .colour-name  { font-size: 0.86rem; font-weight: 600; flex-shrink: 0; width: 72px; }
+    .colour-desc  { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
   </style>
 </head>
 <body>
@@ -743,6 +757,8 @@
         <button class="btn btn-ghost" onclick="copyHandover()">📋 Copy</button>
         <button class="btn btn-green" onclick="shareHandover()">📤 Share</button>
       </div>
+      <div style="height:8px"></div>
+      <button class="btn btn-ghost" style="font-size:0.88rem;min-height:46px" onclick="copyWhatsApp()">💬 Copy for WhatsApp</button>
     </div>
 
     <div class="notice warn">
@@ -923,6 +939,7 @@
       <input type="datetime-local" id="feedTime">
     </label>
     <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveFeed()">Save feed</button>
       <button class="btn btn-ghost"   onclick="closeSheet()">Cancel</button>
     </div>
   </div>
@@ -943,6 +960,18 @@
     <label>Colour / details
       <input id="nappyDetails" placeholder="e.g. yellow, mustard, green (optional)">
     </label>
+    <div style="margin-top:-4px">
+      <div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:7px">Colour guide</div>
+      <div class="colour-guide">
+        <div class="colour-row"><div class="colour-swatch" style="background:#1a1200"></div><div class="colour-name">Black/tar</div><div class="colour-desc">Meconium — normal in first 1–2 days</div></div>
+        <div class="colour-row"><div class="colour-swatch" style="background:#5a6e2a"></div><div class="colour-name">Dark green</div><div class="colour-desc">Transition stool, days 2–4</div></div>
+        <div class="colour-row"><div class="colour-swatch" style="background:#c8b84a"></div><div class="colour-name">Yellow/mustard</div><div class="colour-desc">Normal for breastfed babies</div></div>
+        <div class="colour-row"><div class="colour-swatch" style="background:#c8a060"></div><div class="colour-name">Tan/brown</div><div class="colour-desc">Normal for formula-fed babies</div></div>
+        <div class="colour-row"><div class="colour-swatch" style="background:#7ab87a"></div><div class="colour-name">Bright green</div><div class="colour-desc">Foremilk imbalance or mild illness — mention to midwife</div></div>
+        <div class="colour-row" style="border-color:var(--red-dim);background:var(--red-glow)"><div class="colour-swatch" style="background:#c03030"></div><div class="colour-name" style="color:var(--red)">Red/blood</div><div class="colour-desc" style="color:#ffc5c5">Contact your midwife or GP today</div></div>
+        <div class="colour-row" style="border-color:var(--red-dim);background:var(--red-glow)"><div class="colour-swatch" style="background:#f0f0f0"></div><div class="colour-name" style="color:var(--red)">White/pale</div><div class="colour-desc" style="color:#ffc5c5">Contact your midwife or GP today</div></div>
+      </div>
+    </div>
     <label>Notes
       <textarea id="nappyNotes" placeholder="Optional" style="min-height:72px"></textarea>
     </label>
@@ -1205,6 +1234,13 @@
   }
 
   // ══════════════════════════════════════════
+  // HAPTICS
+  // ══════════════════════════════════════════
+  function haptic(ms=8) {
+    try { if (navigator.vibrate) navigator.vibrate(ms); } catch {}
+  }
+
+  // ══════════════════════════════════════════
   // NAVIGATION
   // ══════════════════════════════════════════
   const PAGES = ["home","night","handover","more","charts"];
@@ -1239,6 +1275,7 @@
   }
 
   function openSheet(id) {
+    haptic();
     _closeSheetUI();    // close current sheet WITHOUT resetting editingId
     currentSheet = id;
     document.getElementById("overlay").classList.add("show");
@@ -1351,6 +1388,7 @@
     if (feedType === "Breast" && side && side !== "Both") state.lastBreastSide = side;
 
     commitEvent(editingId, "Feed", { feedType, side, amount: finalAmount, timerMins, notes }, ts);
+    haptic(12);
 
     document.getElementById("feedAmount").value = "";
     document.getElementById("feedNotes").value  = "";
@@ -1372,6 +1410,7 @@
     const isEdit  = !!editingId;
 
     commitEvent(editingId, "Nappy", { nappyType, details, notes }, ts);
+    haptic(12);
 
     document.getElementById("nappyDetails").value = "";
     document.getElementById("nappyNotes").value   = "";
@@ -1390,6 +1429,7 @@
   }
 
   function startSleep() {
+    haptic();
     state.currentSleep = nowISO();
     persist();
     startTick();
@@ -1398,6 +1438,7 @@
 
   function endSleep() {
     if (!state.currentSleep) return;
+    haptic(12);
     const start = state.currentSleep;
     const end   = nowISO();
     const minutes = Math.max(0, Math.round((new Date(end) - new Date(start)) / 60000));
@@ -1409,6 +1450,7 @@
   }
 
   function cancelSleep() {
+    haptic();
     state.currentSleep = null;
     stopTick();
     persist();
@@ -1462,6 +1504,7 @@
     const isEdit = !!editingId;
 
     commitEvent(editingId, "Med", { name, dose, notes }, ts);
+    haptic(12);
 
     document.getElementById("medName").value  = "";
     document.getElementById("medDose").value  = "";
@@ -1496,6 +1539,7 @@
     const isEdit = !!editingId;
 
     commitEvent(editingId, "Note", { text }, ts);
+    haptic(12);
 
     document.getElementById("noteText").value = "";
     _closeSheetUI();
@@ -1516,6 +1560,7 @@
     const isEdit = !!editingId;
 
     commitEvent(editingId, "Weight", { value, unit, notes }, ts);
+    haptic(12);
 
     document.getElementById("weightVal").value   = "";
     document.getElementById("weightNotes").value = "";
@@ -1724,6 +1769,46 @@
     }
   }
 
+  async function copyWhatsApp() {
+    const lf = findLast("Feed");
+    const ln = findLast("Nappy");
+    const ls = findLast("Sleep");
+    const baby = state.babyName || "Baby";
+    const h = state.handover;
+    const lines = [];
+
+    lines.push(`*${baby} handover* — ${new Date().toLocaleString([],{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}`);
+    lines.push("");
+    lines.push(`🍼 *Last feed:* ${lf ? `${fmtTime(lf.timestamp)} (${ago(lf.timestamp)})${lf.data.feedType ? " — " + lf.data.feedType : ""}${lf.data.side ? " · " + lf.data.side : ""}` : "not logged"}`);
+    lines.push(`💧 *Last nappy:* ${ln ? `${fmtTime(ln.timestamp)} (${ago(ln.timestamp)}) — ${ln.data.nappyType}` : "not logged"}`);
+
+    if (state.currentSleep) {
+      lines.push(`😴 *Sleep:* asleep since ${fmtTime(state.currentSleep)} (${ago(state.currentSleep)})`);
+    } else if (ls) {
+      lines.push(`😴 *Last sleep:* ${fmtDur(ls.data.minutes)} — ended ${fmtTime(ls.data.end)} (${ago(ls.data.end)})`);
+    } else {
+      lines.push(`😴 *Sleep:* not logged`);
+    }
+
+    if (state.lastBreastSide) {
+      lines.push(`👉 *Next breast:* ${state.lastBreastSide === "Left" ? "RIGHT" : "LEFT"}`);
+    }
+
+    if (h.mood)  { lines.push(""); lines.push(`😊 *Mood:* ${h.mood}`); }
+    if (h.tried) lines.push(`✅ *Tried:* ${h.tried}`);
+    if (h.next)  lines.push(`⏭ *Next likely need:* ${h.next}`);
+    if (h.note)  { lines.push(""); lines.push(`💬 ${h.note}`); }
+
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      haptic(8);
+      toast("WhatsApp format copied ✓", "ok");
+    } catch {
+      toast("Long-press the text to copy", "err");
+    }
+  }
+
   // ══════════════════════════════════════════
   // BAG
   // ══════════════════════════════════════════
@@ -1776,6 +1861,7 @@
   // ══════════════════════════════════════════
   function undoLast() {
     if (!state.events.length) { toast("Nothing to undo", "err"); return; }
+    haptic();
     const e = state.events[0];
     state.events.shift();
     // Restore breast side if needed
